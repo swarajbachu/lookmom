@@ -21,6 +21,7 @@ You: lookmom share <id> --email teammate@acme.com
 - [How it works](#how-it-works)
 - [Quick start (local)](#quick-start-local)
 - [Using the CLI](#using-the-cli)
+- [The skill (install for your agent)](#the-skill)
 - [**Security model**](#security-model) ← *the part that makes this trustworthy*
 - [Tech stack & cost](#tech-stack--cost)
 - [Deploying to production](#deploying-to-production)
@@ -115,6 +116,26 @@ bun run packages/cli/src/cli.ts <command>
 | `lookmom logout` | Revoke the token and forget it. |
 
 `--api <url>` (or `$LOOKMOM_API_URL`) points the CLI at any instance; defaults to `http://localhost:8787`.
+
+---
+
+## The skill
+
+lookmom ships an agent **skill** so Claude (or any compatible agent) automatically writes CSP-safe, self-contained HTML and publishes it when you ask for an artifact — no copy-pasting.
+
+Install it with [`skills`](https://github.com/vercel-labs/skills), the open agent-skills installer (works with Claude Code, Cursor, Codex, and 60+ agents):
+
+```bash
+npx skills add swarajbachu/lookmom
+```
+
+That fetches `skills/lookmom/SKILL.md` and drops it into your agent's skills directory — no manual path config. Once it's installed, just ask:
+
+> *"make me a dashboard of last week's signups as an artifact"*
+
+…and the agent writes the page, runs `lookmom preview` / `lookmom publish`, and hands you the private URL. The skill teaches the agent the self-contained-HTML rules (inline everything, no external requests) so pages render correctly under the [strict CSP](#2-strict-content-security-policy--no-external-requests-ever).
+
+> The skill drives the `lookmom` CLI, so install and authorize the CLI first (`lookmom login`). The skill source lives in this repo at [`skills/lookmom/SKILL.md`](skills/lookmom/SKILL.md).
 
 ---
 
@@ -246,6 +267,8 @@ packages/
       tokens.ts         JWT signing (sessions + agent tokens)
       ratelimit.ts quota.ts   Layer 1 + Layer 2 abuse protection
   cli/           the `lookmom` CLI (login, preview, publish, share, list)
+skills/
+  lookmom/       the agent skill — `npx skills add swarajbachu/lookmom`
 examples/        a sample artifact
 ```
 
