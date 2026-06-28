@@ -1,5 +1,5 @@
 {
-  "name": "lookmom-worker",
+  "name": "@lookmom/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
