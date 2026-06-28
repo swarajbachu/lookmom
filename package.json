@@ -1,0 +1,22 @@
+{
+  "name": "lookmom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "lookmom — Claude-published, access-controlled HTML pages on Cloudflare",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "deploy": "turbo run deploy --filter=@lookmom/worker",
+    "db:generate": "turbo run db:generate --filter=@lookmom/worker"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.0"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  }
+}

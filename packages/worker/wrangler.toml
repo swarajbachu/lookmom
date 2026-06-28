@@ -1,0 +1,57 @@
+name = "lookmom-worker"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# The app/auth origin. Artifact CONTENT is served from a separate cookieless
+# sandbox subdomain (ARTIFACT_SANDBOX_HOST) so artifact JS can never read the
+# auth session cookie. In local dev both are localhost with different ports
+# handled by the CLI preview; in prod set these as vars/routes.
+[vars]
+APP_HOST = "http://localhost:8787"
+ARTIFACT_SANDBOX_HOST = "http://localhost:8787"
+WORKOS_REDIRECT_URI = "http://localhost:8787/auth/callback"
+# Comma-separated emails always allowed to view (bootstrap/dev). Optional.
+DEV_ALLOWLIST = ""
+# WORKOS_CLIENT_ID is intentionally NOT set here so it comes only from
+# .dev.vars in local dev (set it as a real var/secret in prod). Leaving an
+# empty value here would shadow .dev.vars.
+
+# Secrets (set with `wrangler secret put`, or in .dev.vars for local):
+#   WORKOS_API_KEY, WORKOS_COOKIE_PASSWORD, JWT_SIGNING_SECRET
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lookmom-db"
+database_id = "local-dev-placeholder"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "lookmom-blobs"
+
+# Layer 1 rate limiting — Workers' built-in, free, no-storage limiter.
+# period must be 10 or 60 (seconds). Keys are chosen per-route in ratelimit.ts.
+[[unsafe.bindings]]
+name = "RL_VIEW"        # unauthenticated viewer hits, keyed by IP
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }
+
+[[unsafe.bindings]]
+name = "RL_PUBLISH"     # publish, keyed by owner/token
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+
+[[unsafe.bindings]]
+name = "RL_OTP"         # OTP verify, keyed by claim id + IP
+type = "ratelimit"
+namespace_id = "1003"
+simple = { limit = 10, period = 60 }
+
+[[unsafe.bindings]]
+name = "RL_AUTH"        # login / claim creation, keyed by IP
+type = "ratelimit"
+namespace_id = "1004"
+simple = { limit = 30, period = 60 }
