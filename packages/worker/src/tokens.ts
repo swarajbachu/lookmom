@@ -7,7 +7,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { randomId } from "./util";
 
-const ISSUER = "open-html-artifacts";
+const ISSUER = "lookmom";
 const VIEWER_AUD = "viewer";
 const AGENT_AUD = "agent";
 

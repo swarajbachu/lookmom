@@ -10,7 +10,7 @@
  */
 import { SignJWT, jwtVerify } from "jose";
 
-const ISSUER = "open-html-artifacts";
+const ISSUER = "lookmom";
 const GRANT_AUD = "content-grant";
 
 function key(secret: string): Uint8Array {

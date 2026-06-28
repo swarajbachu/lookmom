@@ -4,7 +4,7 @@ import type { Context, MiddlewareHandler } from "hono";
 import type { Env, Vars } from "../types";
 import { signViewerSession, verifyViewerSession } from "../tokens";
 
-export const SESSION_COOKIE = "oha_session";
+export const SESSION_COOKIE = "lookmom_session";
 
 type Ctx = Context<{ Bindings: Env; Variables: Vars }>;
 

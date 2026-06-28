@@ -1,5 +1,5 @@
 {
-  "name": "@artifacts/worker",
+  "name": "lookmom-worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,8 +7,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply artifacts-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply artifacts-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply lookmom-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply lookmom-db --remote",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

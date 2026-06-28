@@ -88,7 +88,7 @@ agentRoutes.get("/.well-known/oauth-protected-resource", (c) =>
 
 agentRoutes.get("/auth.md", (c) => {
   const host = c.env.APP_HOST;
-  const md = `# Open HTML Artifacts — Agent Registration
+  const md = `# lookmom — Agent Registration
 
 This service supports the **user-claimed (OTP)** flow from auth.md.
 

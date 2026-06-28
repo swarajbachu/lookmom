@@ -125,7 +125,7 @@ export const Gallery: FC<{ email: string; artifacts: Artifact[]; host: string }>
           Signed in as <span class="mono">{email}</span>
         </p>
         {artifacts.length === 0 ? (
-          <p>Nothing published yet. Use the CLI: <span class="mono">artifact publish</span>.</p>
+          <p>Nothing published yet. Use the CLI: <span class="mono">lookmom publish</span>.</p>
         ) : (
           <ul class="list">
             {artifacts.map((a) => (

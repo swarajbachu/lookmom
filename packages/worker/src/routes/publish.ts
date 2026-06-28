@@ -6,7 +6,15 @@
  */
 import { Hono } from "hono";
 import type { Env, Vars, ShareMode } from "../types";
-import { getDb, getArtifact, createArtifact, addVersion } from "../db";
+import {
+  getDb,
+  getArtifact,
+  createArtifact,
+  addVersion,
+  listArtifactsByOwner,
+  setShareMode,
+  addToAllowlist,
+} from "../db";
 import { assertPublishAllowed, QuotaExceeded } from "../quota";
 import { MAX_ARTIFACT_BYTES } from "../csp";
 import { requireAgent, PUBLISH_SCOPE } from "../auth/agent";
@@ -17,7 +25,51 @@ const SHARE_MODES: ShareMode[] = ["private", "allowlist", "public"];
 
 export const publishRoutes = new Hono<{ Bindings: Env; Variables: Vars }>();
 
+// All /api/* routes here require a valid agent token.
 publishRoutes.use("/api/publish", requireAgent(PUBLISH_SCOPE));
+publishRoutes.use("/api/artifacts", requireAgent(PUBLISH_SCOPE));
+publishRoutes.use("/api/artifacts/*", requireAgent(PUBLISH_SCOPE));
+
+/** List the caller's artifacts (for `lookmom list`). */
+publishRoutes.get("/api/artifacts", async (c) => {
+  const owner = c.get("agent")!.ownerEmail;
+  const db = getDb(c.env.DB);
+  const rows = await listArtifactsByOwner(db, owner);
+  return c.json({
+    artifacts: rows.map((a) => ({
+      id: a.id,
+      title: a.title,
+      emoji: a.emoji,
+      share_mode: a.shareMode,
+      version: a.currentVersion,
+      url: `${c.env.APP_HOST}/a/${a.id}`,
+      updated_at: a.updatedAt,
+    })),
+  });
+});
+
+/** Manage sharing for an owned artifact (for `lookmom share`). */
+publishRoutes.post("/api/artifacts/:id/share", async (c) => {
+  const owner = c.get("agent")!.ownerEmail;
+  const id = c.req.param("id");
+  const db = getDb(c.env.DB);
+  const art = await getArtifact(db, id);
+  if (!art) return c.json({ error: "not_found" }, 404);
+  if (art.ownerEmail !== owner) return c.json({ error: "forbidden" }, 403);
+
+  const body = (await c.req.json().catch(() => ({}))) as { mode?: string; emails?: string[] };
+  if (body.mode && SHARE_MODES.includes(body.mode as ShareMode)) {
+    await setShareMode(db, id, body.mode as ShareMode);
+  }
+  if (Array.isArray(body.emails)) {
+    const emails = body.emails
+      .map((e) => String(e).trim().toLowerCase())
+      .filter((e) => e.includes("@") && e.length <= 254);
+    await addToAllowlist(db, id, emails);
+  }
+  const updated = await getArtifact(db, id);
+  return c.json({ id, share_mode: updated?.shareMode, url: `${c.env.APP_HOST}/a/${id}` });
+});
 
 publishRoutes.post("/api/publish", async (c) => {
   const agent = c.get("agent")!;

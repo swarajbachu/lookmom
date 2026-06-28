@@ -1,8 +1,8 @@
 {
-  "name": "open-html-artifacts",
+  "name": "lookmom-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Open HTML Artifacts — Claude-published, access-controlled web pages on Cloudflare",
+  "description": "lookmom — Claude-published, access-controlled HTML pages on Cloudflare",
   "workspaces": [
     "packages/*"
   ],
@@ -10,8 +10,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "deploy": "turbo run deploy --filter=@artifacts/worker",
-    "db:generate": "turbo run db:generate --filter=@artifacts/worker"
+    "deploy": "turbo run deploy --filter=lookmom-worker",
+    "db:generate": "turbo run db:generate --filter=lookmom-worker"
   },
   "devDependencies": {
     "turbo": "^2.10.0"

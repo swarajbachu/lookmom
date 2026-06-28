@@ -12,7 +12,7 @@ import { enforce, RateLimited, clientIp } from "../ratelimit";
 import { randomId } from "../util";
 import { Layout } from "../chrome";
 
-const OAUTH_COOKIE = "oha_oauth";
+const OAUTH_COOKIE = "lookmom_oauth";
 
 /** Only allow same-site relative redirect targets. */
 function safeReturnTo(raw: string | undefined): string {
