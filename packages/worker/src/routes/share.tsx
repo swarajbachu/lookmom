@@ -74,6 +74,12 @@ shareRoutes.get("/share/:id", async (c) => {
           <a class="btn secondary sm" href={previewUrl}>
             ← Back to preview
           </a>
+          <a class="btn secondary sm" href="/gallery">
+            Gallery
+          </a>
+          <a class="btn secondary sm" href="/auth/logout">
+            Log out
+          </a>
         </div>
       </header>
       <main class="shell-main narrow">

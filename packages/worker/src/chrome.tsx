@@ -706,6 +706,11 @@ export function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
             Gallery
           </a>
         ) : null}
+        {props.email ? (
+          <a class="btn secondary sm" href="/auth/logout">
+            Log out
+          </a>
+        ) : null}
       </div>
     </header>
   );
@@ -857,6 +862,9 @@ export const ArtifactFrame: FC<{
               </button>
               <a class="btn ghost sm" href={shareUrl}>
                 Full page
+              </a>
+              <a class="btn ghost sm" href="/auth/logout">
+                Log out
               </a>
             </>
           ) : null}
