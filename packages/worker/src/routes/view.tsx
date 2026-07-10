@@ -15,6 +15,8 @@ import {
   getDb,
   getOwnerGithub,
   isOnGithubShareRoster,
+  isOrgMember,
+  getGithubOrgLink,
 } from "../db";
 import { artifactHeaders } from "../csp";
 import { signGrant, verifyGrant } from "../grants";
@@ -93,8 +95,18 @@ viewRoutes.get("/a/:id", async (c) => {
         return c.html(<GithubNotConfigured />);
       }
 
-      // 1) Email match from roster/allowlist (public emails synced by owner)
+      // Org-first access: org roster → artifact roster → allowlist → live check (linker token)
+      const orgKey = (art.orgSlug || art.githubOrg || "").toLowerCase();
+
       if (await isAllowed(db, id, viewer.email)) {
+        allowed = true;
+      } else if (
+        orgKey &&
+        (await isOrgMember(db, orgKey, {
+          email: viewer.email,
+          githubLogin: viewer.githubLogin,
+        }))
+      ) {
         allowed = true;
       } else if (
         await isOnGithubShareRoster(db, id, {
@@ -102,13 +114,16 @@ viewRoutes.get("/a/:id", async (c) => {
           githubLogin: viewer.githubLogin,
         })
       ) {
-        // 2) On owner-synced roster (login or email)
         allowed = true;
       } else {
-        // 3) Live membership — prefer *owner* token so members don't need SAML'd app access
+        // Live membership via org linker token (preferred) or owner github / viewer cookie
+        const orgLink = orgKey ? await getGithubOrgLink(db, orgKey) : null;
         const ownerLink = await getOwnerGithub(db, art.ownerEmail);
         const token =
-          ownerLink?.accessToken ?? getGithubTokenCookie(c) ?? undefined;
+          orgLink?.accessToken ??
+          ownerLink?.accessToken ??
+          getGithubTokenCookie(c) ??
+          undefined;
 
         if (!viewer.githubLogin) {
           return c.html(
@@ -117,7 +132,7 @@ viewRoutes.get("/a/:id", async (c) => {
               loginUrl={loginUrl}
               githubLoginUrl={githubLoginUrl}
               teamShare={false}
-              message="This is shared with a GitHub org. Sign in with your work email if the owner synced it, or with GitHub (username match / membership)."
+              message="Shared with a GitHub org. Sign in with work email if synced, or connect GitHub identity (no org grant needed)."
             />,
           );
         }
@@ -129,14 +144,14 @@ viewRoutes.get("/a/:id", async (c) => {
               loginUrl={loginUrl}
               githubLoginUrl={githubLoginUrl}
               teamShare
-              message="Sign in with GitHub to verify org membership (owner may need to re-sync members)."
+              message="Connect GitHub identity, or ask an org linker to re-sync members."
             />,
           );
         }
 
         const result = await isGithubTeamMember(db, {
           githubLogin: viewer.githubLogin,
-          org: art.githubOrg,
+          org: art.githubOrg || orgKey,
           team: art.githubTeam,
           accessToken: token,
         });

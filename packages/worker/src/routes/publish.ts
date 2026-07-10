@@ -16,6 +16,7 @@ import {
   addToAllowlist,
   setGithubTeamShare,
   getOwnerGithub,
+  upsertGithubOrgLink,
 } from "../db";
 import { assertPublishAllowed, QuotaExceeded } from "../quota";
 import { MAX_ARTIFACT_BYTES } from "../csp";
@@ -105,6 +106,12 @@ publishRoutes.post("/api/artifacts/:id/share", async (c) => {
     await setGithubTeamShare(db, id, { org, team });
     const link = await getOwnerGithub(db, owner);
     if (link) {
+      await upsertGithubOrgLink(db, {
+        orgSlug: org,
+        linkedByEmail: owner,
+        githubLogin: link.githubLogin,
+        accessToken: link.accessToken,
+      });
       await syncGithubShareRoster(db, {
         artifactId: id,
         accessToken: link.accessToken,

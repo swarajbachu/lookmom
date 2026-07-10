@@ -1,0 +1,96 @@
+/* Sketch diagram chrome for plan SVGs */
+.diagram-host .lane {
+  fill: var(--d-lane);
+  stroke: var(--d-lane-border);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+}
+.diagram-host .lane-title {
+  fill: var(--muted);
+  font-size: 14px;
+  font-family: var(--font);
+  font-weight: 700;
+}
+.diagram-host .node-shell {
+  fill: var(--d-node-bg);
+  stroke: var(--ink);
+  stroke-width: 2.3;
+  filter: drop-shadow(2px 2px 0 rgba(31,48,24,0.12));
+}
+.diagram-host .node-title {
+  fill: var(--d-node-fg);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font);
+}
+.diagram-host .node-sub {
+  fill: var(--d-node-sub);
+  font-size: 12px;
+  font-family: var(--font);
+}
+.diagram-host .node-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.diagram-host .edge {
+  fill: none;
+  stroke: var(--d-edge);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.diagram-host .edge.strong { stroke-width: 2.6; }
+.diagram-host .edge.dashed { stroke-dasharray: 7 6; }
+.diagram-host .edge-label-bg {
+  fill: var(--d-label-bg);
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+.diagram-host .edge-label {
+  fill: var(--d-label-fg);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+}
+.diagram-host .lifeline {
+  stroke: var(--d-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 7;
+}
+.diagram-host .actor-title {
+  fill: var(--d-node-fg);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font);
+}
+.diagram-host .msg-label {
+  fill: var(--d-label-fg);
+  font-size: 13px;
+  font-family: var(--font);
+}
+.diagram-host .note-box {
+  fill: #fff3c4;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-dasharray: 5 4;
+}
+.diagram-host .note-text {
+  fill: var(--d-node-fg);
+  font-size: 13px;
+  font-family: var(--font);
+}
+.diagram-host .diamond-shell {
+  fill: #fff9e6;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+}
+.diagram-host .diamond-title {
+  fill: var(--d-node-fg);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+  text-anchor: middle;
+}

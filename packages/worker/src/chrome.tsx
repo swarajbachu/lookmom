@@ -722,6 +722,9 @@ export function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
       </a>
       <div class="nav-actions">
         {props.email ? <span class="nav-meta mono">{props.email}</span> : null}
+        <a class="btn secondary sm" href="/orgs">
+          Orgs
+        </a>
         {props.right === "gallery" ? (
           <a class="btn secondary sm" href="/gallery">
             Gallery

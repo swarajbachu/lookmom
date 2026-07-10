@@ -19,10 +19,15 @@ export const artifacts = sqliteTable(
     githubOrg: text("github_org"),
     /** Optional team slug within the org; null/empty = any org member. */
     githubTeam: text("github_team"),
+    /** When set, artifact lives in this org library. */
+    orgSlug: text("org_slug"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
-  (t) => [index("idx_artifacts_owner").on(t.ownerEmail)],
+  (t) => [
+    index("idx_artifacts_owner").on(t.ownerEmail),
+    index("idx_artifacts_org").on(t.orgSlug),
+  ],
 );
 
 export const versions = sqliteTable(
@@ -108,6 +113,37 @@ export const claimAttempts = sqliteTable(
   (t) => [index("idx_claim_token").on(t.claimTokenHash)],
 );
 
+
+/** Org linked into lookmom by a linker (read:org token). */
+export const githubOrgLinks = sqliteTable(
+  "github_org_links",
+  {
+    orgSlug: text("org_slug").primaryKey(),
+    linkedByEmail: text("linked_by_email").notNull(),
+    githubLogin: text("github_login").notNull(),
+    accessToken: text("access_token").notNull(),
+    lastSyncedAt: integer("last_synced_at"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [index("idx_github_org_links_linker").on(t.linkedByEmail)],
+);
+
+/** Org-level member roster (synced by linker). */
+export const githubOrgMembers = sqliteTable(
+  "github_org_members",
+  {
+    orgSlug: text("org_slug").notNull(),
+    githubLogin: text("github_login").notNull(),
+    email: text("email"),
+    syncedAt: integer("synced_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.orgSlug, t.githubLogin] }),
+    index("idx_github_org_members_org").on(t.orgSlug),
+    index("idx_github_org_members_email").on(t.orgSlug, t.email),
+  ],
+);
+
 /**
  * Owner's GitHub link from WorkOS GitHubOAuth (CLI or web connect).
  * access_token is used server-side for org/team listing + membership.
@@ -145,4 +181,6 @@ export type Version = InferSelectModel<typeof versions>;
 export type ShareMode = Artifact["shareMode"];
 export type OwnerGithub = InferSelectModel<typeof ownerGithub>;
 export type GithubShareRosterEntry = InferSelectModel<typeof githubShareRoster>;
+export type GithubOrgLink = InferSelectModel<typeof githubOrgLinks>;
+export type GithubOrgMember = InferSelectModel<typeof githubOrgMembers>;
 

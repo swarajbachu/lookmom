@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>lookmom · Org support plan</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="diagram.css">
 </head>
 <body>
   <div class="page">
@@ -12,88 +13,76 @@
       <p class="kicker">lookmom · product plan</p>
       <h1>GitHub Orgs, first-class</h1>
       <p class="lede">
-        Connect an org once. Members only prove who they are on GitHub —
-        no 50-person SAML dance. Artifacts live in the org library.
+        Connect an org once. Members only prove who they are —
+        boxes, arrows, no walls of text.
       </p>
     </header>
 
     <section class="card">
-      <h2>01 · The pain</h2>
-      <ul>
-        <li>Every viewer needing org OAuth / SAML approval</li>
-        <li>Typing org slugs instead of picking connected orgs</li>
-        <li>No place that lists “what’s in Aperturs”</li>
-      </ul>
-    </section>
-
-    <section class="card">
-      <h2>02 · Two connect levels</h2>
-      <div class="grid2">
-        <div class="pill-card">
-          <h3>Identity</h3>
-          <p>Everyone. Proves <code>@login</code>. Scopes: <code>read:user</code> (+ email). <strong>No org grant.</strong></p>
-        </div>
-        <div class="pill-card accent">
-          <h3>Org link</h3>
-          <p>One linker. Scopes: <code>read:org</code>. Lists members, refreshes roster, powers the org library.</p>
-        </div>
+      <div class="card-head">
+        <h2>Today’s pain</h2>
+        <span class="chip">50 people × SAML</span>
       </div>
+      <div class="diagram-host" id="d-pain" role="img" aria-label="Every member must OAuth grant org access"></div>
+      <p class="caption">Each viewer hits GitHub OAuth / SAML. Admins drown in access requests.</p>
     </section>
 
     <section class="card">
-      <h2>03 · Flows</h2>
-      <ol class="steps">
-        <li><strong>Linker</strong> → Orgs → connect GitHub org → pick org → sync members</li>
-        <li><strong>Owner</strong> → share / publish artifact <em>into</em> that org</li>
-        <li><strong>Member</strong> → connect identity GitHub only → sees orgs they’re on the roster for → opens artifacts</li>
-        <li><strong>Fallback</strong> → hidden email? GitHub username match or live check with <em>linker</em> token</li>
-      </ol>
+      <div class="card-head">
+        <h2>Target model</h2>
+        <span class="chip">one linker</span>
+      </div>
+      <div class="diagram-host tall" id="d-target" role="img" aria-label="One linker connects org; members use identity only"></div>
+      <p class="caption">Linker grants <code>read:org</code> once. Everyone else only connects identity (<code>@login</code>).</p>
     </section>
 
     <section class="card">
-      <h2>04 · Screens</h2>
-      <pre class="wire">Nav:  Gallery · Orgs · you@… · Log out
-
-/orgs              → all orgs I can see
-/orgs/:slug        → artifacts | members | sync
-/a/:id             → viewer (+ share → pick linked org)
-/gallery           → mine (org badges)</pre>
+      <div class="card-head">
+        <h2>Two connect levels</h2>
+        <span class="chip">scopes</span>
+      </div>
+      <div class="diagram-host" id="d-scopes" role="img" aria-label="Identity connect vs org link scopes"></div>
     </section>
 
     <section class="card">
-      <h2>05 · Access rules</h2>
-      <ol>
-        <li>Public / owner / email allowlist</li>
-        <li>Email or <code>@login</code> on <strong>org roster</strong></li>
-        <li>Live membership via <strong>linker token</strong> (not each viewer)</li>
-        <li>Else deny — “ask someone to re-sync the org”</li>
-      </ol>
+      <div class="card-head">
+        <h2>Happy path</h2>
+        <span class="chip">sequence</span>
+      </div>
+      <div class="diagram-host tall" id="d-flow" role="img" aria-label="Sequence: link org, publish, member views"></div>
     </section>
 
     <section class="card">
-      <h2>06 · Phases</h2>
-      <table>
-        <tr><th>Phase</th><th>Ship</th></tr>
-        <tr><td>1</td><td>Org links + org roster + gate</td></tr>
-        <tr><td>2</td><td>/orgs UI, share to linked orgs</td></tr>
-        <tr><td>3</td><td>Identity-only connect + auto org list</td></tr>
-        <tr><td>4</td><td>Teams polish, CLI, encrypt tokens</td></tr>
-      </table>
+      <div class="card-head">
+        <h2>How access is decided</h2>
+        <span class="chip">gate</span>
+      </div>
+      <div class="diagram-host tall" id="d-gate" role="img" aria-label="Decision tree for viewing an org artifact"></div>
     </section>
 
     <section class="card">
-      <h2>07 · Defaults</h2>
-      <ul>
-        <li>Member list visible to org viewers</li>
-        <li>One primary linker per org</li>
-        <li>Optional team as hard filter</li>
-        <li>Migrate <code>github_team</code> → org-owned artifacts</li>
-      </ul>
+      <div class="card-head">
+        <h2>Screens</h2>
+        <span class="chip">IA</span>
+      </div>
+      <div class="diagram-host" id="d-screens" role="img" aria-label="App navigation: Gallery, Orgs, org home"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Ship order</h2>
+        <span class="chip">phases</span>
+      </div>
+      <div class="diagram-host" id="d-phases" role="img" aria-label="Four delivery phases"></div>
     </section>
 
     <footer class="foot">
-      Source: <span class="mono">docs/orgs-plan.md</span>
+      <span>Also: <span class="mono">docs/orgs-plan.md</span></span>
+      <span class="mono">examples/orgs-plan</span>
     </footer>
   </div>
+
+  <script src="scripts/diagram.js"></script>
+  <script src="scripts/app.js"></script>
 </body>
 </html>

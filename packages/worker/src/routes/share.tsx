@@ -15,10 +15,11 @@ import {
   setGithubTeamShare,
   getOwnerGithub,
   countGithubShareRoster,
+  upsertGithubOrgLink,
 } from "../db";
 import { normalizeGithubSlug, isGithubTeamShareAvailable } from "../auth/github";
 import { listUserOrgs } from "../github/orgs";
-import { syncGithubShareRoster } from "../github/roster-sync";
+import { syncGithubShareRoster, syncOrgMembers } from "../github/roster-sync";
 import { Gallery, GithubOrgTeamFields, Layout, ORG_TEAM_PICKER_SCRIPT } from "../chrome";
 
 const SHARE_MODES: ShareMode[] = ["private", "allowlist", "public", "github_team"];
@@ -262,9 +263,15 @@ shareRoutes.post("/share/:id/mode", async (c) => {
       }
     }
     await setGithubTeamShare(db, id, { org, team });
-    // Snapshot members with owner's token so teammates don't each need org OAuth/SAML.
+    // Link org (if not already) + sync org roster + artifact snapshot.
     const link = await getOwnerGithub(db, viewer.email);
     if (link) {
+      await upsertGithubOrgLink(db, {
+        orgSlug: org,
+        linkedByEmail: viewer.email,
+        githubLogin: link.githubLogin,
+        accessToken: link.accessToken,
+      });
       const sync = await syncGithubShareRoster(db, {
         artifactId: id,
         accessToken: link.accessToken,
