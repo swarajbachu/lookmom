@@ -1,0 +1,43 @@
+<section class="section" id="joins">
+  <div class="section-head">
+    <div>
+      <p class="num">05</p>
+      <h2>Joins reassemble related rows</h2>
+      <p>
+        Normalized data lives in multiple tables. A join stitches them using
+        matching keys — usually FK → PK — at query time.
+      </p>
+    </div>
+    <span class="chip">query</span>
+  </div>
+
+  <div class="seg" role="group" aria-label="Join type">
+    <button type="button" data-join="inner" aria-pressed="true">INNER</button>
+    <button type="button" data-join="left" aria-pressed="false">LEFT</button>
+    <button type="button" data-join="anti" aria-pressed="false">Anti (no match)</button>
+  </div>
+
+  <div class="grid-2 flip">
+    <div class="prose">
+      <p id="join-copy"></p>
+      <div class="table-wrap" style="margin-top:12px">
+        <table class="data" id="join-table" aria-label="Join result set"></table>
+      </div>
+    </div>
+    <div
+      class="diagram-host lg"
+      id="join-diagram"
+      role="img"
+      aria-label="Venn-style illustration of join behavior"
+    ></div>
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <strong>Practical tip</strong>
+    <p>
+      Start with the driving table (often the filtered one), join outward, and
+      ensure join columns are indexed. Unexpected row multiplication usually
+      means a many-to-many without an intermediate table or a missing predicate.
+    </p>
+  </div>
+</section>

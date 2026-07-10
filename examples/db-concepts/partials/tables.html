@@ -1,0 +1,58 @@
+<section class="section" id="tables">
+  <div class="section-head">
+    <div>
+      <p class="num">01</p>
+      <h2>Tables store facts in rows</h2>
+      <p>
+        A relational database organizes data into <strong style="color:var(--fg);font-weight:600">tables</strong>.
+        Each row is one entity; each column is one attribute.
+      </p>
+    </div>
+    <span class="chip">relation</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="table-wrap">
+        <table class="data" aria-label="Example users table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>name</th>
+              <th>plan</th>
+              <th>created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="pk">1</td><td>Ada</td><td>pro</td><td>2024-01-12</td></tr>
+            <tr><td class="pk">2</td><td>Grace</td><td>free</td><td>2024-03-02</td></tr>
+            <tr><td class="pk">3</td><td>Linus</td><td>pro</td><td>2024-06-18</td></tr>
+            <tr><td class="pk">4</td><td>Alice</td><td>team</td><td>2025-01-09</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="margin-top:12px">
+        <strong>Mental model</strong>
+        <p>
+          Think of a spreadsheet that enforces types, uniqueness, and
+          relationships — and that many clients can read/write safely at once.
+        </p>
+      </div>
+    </div>
+    <div class="prose">
+      <p>
+        SQL names this a <em>relation</em>. The engine doesn’t care about display
+        order unless you <code>ORDER BY</code>. What matters is the schema:
+      </p>
+      <ul>
+        <li><strong style="color:var(--fg)">Columns</strong> declare type &amp; nullability</li>
+        <li><strong style="color:var(--fg)">Constraints</strong> protect integrity</li>
+        <li><strong style="color:var(--fg)">Queries</strong> declare <em>what</em>, not <em>how</em></li>
+      </ul>
+      <p>
+        The planner chooses how to fetch rows (scan, index, join order). That’s
+        why indexes matter so much later.
+      </p>
+    </div>
+  </div>
+</section>

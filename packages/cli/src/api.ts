@@ -1,5 +1,4 @@
 /** Talks to the Worker: auth.md device login + publish/share/list/revoke. */
-import { readFile } from "node:fs/promises";
 import {
   type Credentials,
   loadCredentials,
@@ -7,7 +6,8 @@ import {
   clearCredentials,
   isExpired,
 } from "./config";
-import { c, info, ok, openBrowser, sleep } from "./util";
+import { bundleArtifact } from "./bundle";
+import { c, info, ok, openBrowser, sleep, warn } from "./util";
 
 const SCOPE = "artifact:publish";
 
@@ -109,6 +109,7 @@ export interface PublishResult {
 export async function apiPublish(
   creds: Credentials,
   opts: {
+    /** Single HTML file or project directory (index.html + CSS/JS). */
     file: string;
     id?: string;
     title?: string;
@@ -118,7 +119,15 @@ export async function apiPublish(
     githubTeam?: string;
   },
 ): Promise<PublishResult> {
-  const html = await readFile(opts.file);
+  const bundled = bundleArtifact(opts.file);
+  for (const w of bundled.warnings) warn(w);
+  if (bundled.inlined.length > 1) {
+    info(
+      c.dim(
+        `  bundled ${bundled.inlined.length} files → ${(bundled.bytes / 1024).toFixed(1)} KB`,
+      ),
+    );
+  }
   const qs = new URLSearchParams();
   if (opts.id) qs.set("id", opts.id);
   if (opts.title) qs.set("title", opts.title);
@@ -130,7 +139,7 @@ export async function apiPublish(
   const res = await fetch(`${creds.apiBase}/api/publish?${qs.toString()}`, {
     method: "POST",
     headers: { authorization: `Bearer ${creds.accessToken}`, "content-type": "text/html" },
-    body: html,
+    body: bundled.html,
   });
   if (res.status === 401) {
     await clearCredentials();

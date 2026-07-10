@@ -1,137 +1,171 @@
 ---
 name: lookmom
-description: Write a self-contained HTML artifact and publish it to a private, access-controlled URL using the lookmom CLI. Use whenever the user asks to make, build, or publish an artifact, dashboard, chart, diagram, mockup, PR walkthrough, comparison, or any visual page they want to look at or share — anything that is easier to see than to read as terminal text.
+description: >
+  Publish and share self-contained HTML artifacts with the lookmom CLI
+  (preview, pack, publish, share, login, GitHub org share). Use when the user
+  wants to put a page online behind auth, update an existing artifact URL,
+  manage access, or install/run lookmom. For *how to design* diagrams,
+  explainers, charts, and mockups, also load the companion skill lookmom-design.
 ---
 
-# lookmom — publish HTML artifacts
+# lookmom — CLI & publishing
 
-An **artifact** is a single self-contained HTML page published to a private URL
-(`https://lookmom.stuff.md/a/<id>` by default) that the user can share with specific
-people. You build the page, then publish it with the `lookmom` CLI. This is the right
-tool when the output is easier to *look at* than to read as text: dashboards, annotated
-diffs, charts, side-by-side options, interactive tuners, status pages.
-
-## When to use
-
-Reach for an artifact when the user says things like "make an artifact", "build me a
-dashboard / chart / mockup", "show this as a page", "walk me through this PR visually", or
-asks to compare options side by side. Prefer it over dumping a large table or ASCII art in
-the terminal.
-
-## The one hard rule: the page must be fully self-contained
-
-Artifacts are served under a **strict Content-Security-Policy** that blocks *all* external
-requests. A page that loads anything from the network will render broken. So:
-
-- **Inline everything.** All CSS in a `<style>` tag, all JS in inline `<script>` tags.
-- **No external resources.** No `<link>`/`<script src>`/`@import`/Google Fonts/CDNs. No
-  `fetch`, `XMLHttpRequest`, or WebSockets — `connect-src 'none'` blocks them.
-- **Images/fonts must be embedded** as `data:` URIs. Prefer **inline SVG** or pure CSS over
-  raster images — they're sharper and far cheaper in tokens.
-- **One page.** No relative links to other files; use in-page `#anchors` for sections.
-- **Size limit: 16 MiB** rendered. Big embedded raster images are the usual cause of bloat;
-  summarize large datasets instead of inlining them in full.
-- Use system font stacks (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, …`).
-
-If you respect the rule above, `lookmom preview` will look identical to the published page.
-
-## Design quality
-
-Make it look deliberate, not default. If the project has a design system (check
-`CLAUDE.md` or a theme file for colors/fonts/spacing), use it. Otherwise pick a clean,
-restrained palette, good type scale, generous spacing, and support dark mode via
-`color-scheme` / `prefers-color-scheme`. Interactive controls (sliders, toggles, tabs) are
-encouraged where they help — they run fine inline.
-
-## Workflow
-
-1. **Write** the HTML to a file in the working directory, e.g. `artifact.html`, following
-   the self-contained rule above.
-
-2. **Preview** it locally (optional but recommended) — serves under the exact production CSP
-   so you catch any external-resource breakage before publishing:
-   ```bash
-   lookmom preview artifact.html
-   ```
-
-3. **Publish** it:
-   ```bash
-   lookmom publish artifact.html --title "Signup funnel" --emoji 📊
-   ```
-   - On the **first publish ever**, the CLI prints a code and opens the browser for the user
-     to authorize (one time). Tell the user to complete that sign-in; then publishing is
-     silent.
-   - It prints the URL, e.g. `https://lookmom.stuff.md/a/pIewXqNLkEVCVMFCgEo37g`. **Give
-     that URL to the user.**
-   - New artifacts are **private** by default (only the owner can view).
-
-4. **Share** (only if the user wants others to see it). Prefer the **Share** button on the
-   artifact page (top bar), or the CLI:
-
-   | Who can view | How |
-   | --- | --- |
-   | Specific emails | Share UI → “Specific people”, or `lookmom share <id> --email a@b` |
-   | Anyone with the link | Share UI → “Anyone”, or `lookmom share <id> --mode public` |
-   | GitHub org / team | See **GitHub organization members** below |
-
-### GitHub organization members (CLI / agent path)
-
-Everything goes **CLI → WorkOS → GitHub**. No `gh` binary. No separate GitHub OAuth app
-device flow. The human only approves **WorkOS GitHub** once when the agent runs connect.
+**lookmom** publishes a self-contained HTML page to a private, access-controlled URL
+(default `https://lookmom.stuff.md/a/<id>`). You (or an agent) write the page, then:
 
 ```bash
-# Default API is https://lookmom.stuff.md (no env var needed).
-# Local only: lookmom … --api http://localhost:8787
+lookmom preview ./path   # local, exact production CSP
+lookmom publish ./path   # → shareable URL
+```
 
-lookmom login                 # once: auth.md / WorkOS for publish
-lookmom whoami                # shows GitHub if already linked via WorkOS
-lookmom github login          # no-op if already linked; else opens WorkOS GitHub once
-lookmom github orgs           # lists orgs (no gh CLI)
-lookmom github teams --org Aperturs
-lookmom share <id> --github-org Aperturs
-# optional team:
-lookmom share <id> --github-org Aperturs --github-team eng
+Companion skill **`lookmom-design`** covers visual craft (diagrams, mockups, explainers,
+charts). This skill covers **auth, pack/preview/publish, share, and the CSP contract**.
+
+## When to use this skill
+
+- “Publish this as an artifact”
+- “Share with the team / make public / GitHub org”
+- “Update the artifact at this URL”
+- “How do I install / login / list artifacts?”
+
+If they only want a pretty page designed but not published yet, still follow the CSP
+rules here so preview/publish will work; use **lookmom-design** for the craft.
+
+## Hard rule: published HTML is fully self-contained
+
+Artifacts run under a **strict CSP** — no network. Anything that loads from the internet
+breaks.
+
+| Allowed | Blocked |
+| --- | --- |
+| Inline / bundled CSS & JS | CDNs, Google Fonts, remote scripts |
+| Local files bundled by CLI | `fetch` / XHR / WebSockets |
+| `data:` images & fonts (≤ 512 KiB each) | External images/fonts |
+| In-page `#anchors` | Multi-page site navigation |
+
+**Size limit:** 16 MiB rendered.
+
+### Multi-file projects (recommended)
+
+```
+my-artifact/
+  index.html              # entry (required for directories)
+  styles/*.css
+  scripts/*.js
+  partials/*.html         # <!-- lookmom:include partials/x.html -->
+  fonts/*.ttf             # optional; inlined via CSS url()
+```
+
+```bash
+lookmom preview ./my-artifact
+lookmom pack ./my-artifact -o /tmp/out.html   # optional inspect
+lookmom publish ./my-artifact --title "Title" --emoji 📊
+```
+
+Single file still works: `lookmom publish page.html`.
+
+### What the bundler inlines
+
+| Source | Becomes |
+| --- | --- |
+| `<link rel="stylesheet" href="local.css">` | `<style>` (+ nested `@import` / `url()`) |
+| `<script src="local.js">` | inline `<script>` |
+| `<!-- lookmom:include path.html -->` | spliced HTML |
+| `<img src="local.png">` / CSS `url(local…)` | `data:` URI if small enough |
+
+- Absolute `https://…` URLs are left alone and **fail CSP** — `preview` catches them.
+- ES `type="module"` is **not** tree-shaken; use classic scripts or inline the body.
+
+## CLI reference
+
+Default API: **`https://lookmom.stuff.md`**. Override with `--api <url>` or `$LOOKMOM_API_URL`.
+
+| Command | Purpose |
+| --- | --- |
+| `lookmom login` | Device auth (auth.md / WorkOS). Token in `~/.lookmom/` |
+| `lookmom logout` | Revoke + forget token |
+| `lookmom whoami` | Login + GitHub link status |
+| `lookmom preview <file\|dir> [--port n]` | Local CSP sandbox + live reload |
+| `lookmom pack <path> -o out.html` | Bundle to one file on disk |
+| `lookmom publish <path> [opts]` | Create or update artifact |
+| `lookmom list` | Your artifacts |
+| `lookmom share <id\|url> [opts]` | Access control |
+| `lookmom github login \| orgs \| teams --org X \| status \| logout` | Org share |
+
+### publish options
+
+```bash
+lookmom publish ./dir \
+  --title "Signup funnel" \
+  --emoji 📊 \
+  --update https://lookmom.stuff.md/a/<id> \  # same URL, new version
+  --share private|allowlist|public|github_team \
+  --github-org acme \
+  --github-team eng
+```
+
+- First publish ever → CLI opens browser for user authorization; **tell the user to finish that**.
+- New artifacts are **private** by default.
+- Always print the final URL to the user.
+
+### share
+
+| Who | How |
+| --- | --- |
+| Specific emails | `lookmom share <id> --email a@b` (repeatable) |
+| Anyone with link | `lookmom share <id> --mode public` |
+| Only owner | `lookmom share <id> --mode private` |
+| GitHub org/team | see below |
+
+Prefer the **Share** button on the artifact chrome when the user is in a browser.
+
+### GitHub organization share (CLI path)
+
+No `gh` binary. Flow is CLI → WorkOS → GitHub.
+
+```bash
+lookmom login
+lookmom whoami                 # may already show GitHub linked
+lookmom github login           # only if not linked; show user the code/URL
+lookmom github orgs
+lookmom share <id> --github-org AcmeOrg
+# optional:
+lookmom share <id> --github-org AcmeOrg --github-team eng
 ```
 
 **Agent rules**
 
-1. After `lookmom login` / `whoami`, check if GitHub is already connected (user’s default
-   WorkOS method may be GitHub — then **skip** a second connect).
-2. If not connected, run `lookmom github login` and **show the user the code/URL**; wait.
-3. Run `lookmom github orgs` and pick the org the user asked for from that list.
-4. Then `lookmom share … --github-org …`.
-5. Do **not** use `gh` or a separate GitHub OAuth flow.
+1. If `whoami` already has GitHub → skip second connect.
+2. If not, run `github login` and wait for the human.
+3. Pick org from `github orgs` output.
+4. Never invent a separate GitHub OAuth device flow.
 
-Viewers of org-shared links still sign in with GitHub in the browser (membership check).
-Email allowlist and public share do **not** need `lookmom github login`.
+Viewers of org-shared links sign in with GitHub in the browser. Email/public share do **not** need GitHub connect.
 
-## Updating an existing artifact
+## Agent workflow (publish)
 
-To revise a page the user already published, edit the file and republish to the **same URL**
-with `--update`:
-```bash
-lookmom publish artifact.html --update https://lookmom.stuff.md/a/<id>
-```
-Each publish becomes a new version at the same URL. If the user gives you an artifact URL and
-asks to change it, always use `--update <url>` — otherwise you'll create a brand-new artifact.
+1. Build HTML (file or folder) that respects CSP — see **lookmom-design** for quality.
+2. `lookmom preview ./path` when feasible; fix console/CSP issues.
+3. `lookmom publish ./path --title "…" --emoji …`
+4. Hand the user the URL.
+5. Share only if they asked.
+6. Edits to an existing URL → always `--update <url|id>`.
 
-## Useful commands
+## Local / self-hosted
 
 ```bash
-lookmom list
-lookmom whoami
-lookmom login
-lookmom github login | orgs | teams --org X | status | logout
-lookmom share <id> --email a@b
-lookmom share <id> --mode public
-lookmom share <id> --github-org acme [--github-team eng]
+# local worker
+lookmom … --api http://localhost:8787
+# or
+export LOOKMOM_API_URL=http://localhost:8787
 ```
 
-## Prerequisites
+CLI install / monorepo: see project README. Binary name is also `lm`.
 
-The `lookmom` CLI must be installed. It defaults to **`https://lookmom.stuff.md`**.
+## Minimal CSP checklist before publish
 
-- Local dev: `lookmom … --api http://localhost:8787` or `LOOKMOM_API_URL=http://localhost:8787`
-- Other hosts: `--api <url>` or `$LOOKMOM_API_URL`
-
-If the command isn’t found, the user needs to set it up — see the project README.
+- [ ] `lookmom preview` loads with no missing assets
+- [ ] No requests to third-party hosts
+- [ ] Fonts/images are local or system stacks (or local `@font-face` files)
+- [ ] Title + emoji set
+- [ ] Using `--update` when revising an existing URL

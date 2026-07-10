@@ -1,0 +1,55 @@
+<section class="section" id="indexes">
+  <div class="section-head">
+    <div>
+      <p class="num">03</p>
+      <h2>Indexes trade write cost for read speed</h2>
+      <p>
+        Without an index, finding a row means reading the table. With a B-tree
+        index, the engine walks a sorted tree and jumps near the match —
+        often orders of magnitude fewer pages.
+      </p>
+    </div>
+    <span class="chip">access path</span>
+  </div>
+
+  <div class="seg" role="group" aria-label="Lookup strategy">
+    <button type="button" data-scan="seq" aria-pressed="true">Sequential scan</button>
+    <button type="button" data-scan="idx" aria-pressed="false">Index lookup</button>
+  </div>
+
+  <div class="grid-2">
+    <div
+      class="diagram-host lg"
+      id="index-diagram"
+      role="img"
+      aria-label="Comparison of sequential scan versus index lookup"
+    ></div>
+    <div>
+      <div class="stat-row" id="index-stats"></div>
+      <div class="prose" style="margin-top:14px">
+        <p id="index-copy"></p>
+        <p>
+          Rule of thumb: index columns you filter/join on a lot
+          (<code>WHERE</code>, <code>JOIN … ON</code>, sometimes <code>ORDER BY</code>).
+          Don’t index everything — each index slows inserts/updates and uses disk.
+        </p>
+      </div>
+      <div class="callout" style="margin-top:12px">
+        <strong>Composite indexes</strong>
+        <p>
+          Order matters. <code>(user_id, created_at)</code> helps
+          “orders for user X, newest first” but won’t help a bare
+          <code>WHERE created_at &gt; …</code> as well.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="diagram-host sm"
+    id="cost-chart"
+    role="img"
+    aria-label="Bar chart of pages read for scan versus index"
+    style="margin-top:8px"
+  ></div>
+</section>

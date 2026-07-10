@@ -1,0 +1,86 @@
+.chart-wrap {
+  width: 100%;
+  min-height: 220px;
+}
+
+.chart-wrap.donut {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+}
+
+.chart-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.bar-label, .axis-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: var(--font);
+}
+
+.bar-value {
+  fill: var(--fg);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font);
+}
+
+.bar {
+  transform-origin: bottom;
+  transition: opacity 150ms ease;
+}
+.bar:hover { opacity: 0.85; }
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.legend .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend .n {
+  color: var(--fg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel-step rect {
+  transition: opacity 150ms ease;
+}
+.funnel-step:hover rect { opacity: 0.88; }
+
+.funnel-label {
+  fill: var(--fg);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font);
+}
+
+.funnel-sub {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font);
+}

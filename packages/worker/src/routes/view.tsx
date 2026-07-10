@@ -175,6 +175,9 @@ viewRoutes.get("/raw/:id", async (c) => {
   if (!obj) return c.notFound();
 
   return new Response(obj.body, {
-    headers: artifactHeaders({ "cache-control": "private, no-store" }),
+    headers: artifactHeaders(
+      { "cache-control": "private, no-store" },
+      { gateOrigin: c.env.APP_HOST },
+    ),
   });
 });

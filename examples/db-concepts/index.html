@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Database concepts · a visual primer</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/diagram.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="kicker">✏️ lookmom · sketch notes</p>
+        <h1>Database concepts, doodled</h1>
+        <p class="lede">
+          A playful tour of relational databases — tables, keys, indexes, ACID,
+          and joins — drawn like notebook diagrams, not a textbook wall of text.
+        </p>
+      </div>
+      <nav class="toc" aria-label="Sections">
+        <a href="#tables">Tables</a>
+        <a href="#keys">Keys</a>
+        <a href="#indexes">Indexes</a>
+        <a href="#acid">ACID</a>
+        <a href="#joins">Joins</a>
+      </nav>
+    </header>
+
+    <!-- lookmom:include partials/tables.html -->
+    <!-- lookmom:include partials/keys.html -->
+    <!-- lookmom:include partials/indexes.html -->
+    <!-- lookmom:include partials/acid.html -->
+    <!-- lookmom:include partials/joins.html -->
+
+    <footer class="foot">
+      <span>Self-contained artifact · no external requests</span>
+      <span class="mono">examples/db-concepts</span>
+    </footer>
+  </div>
+
+  <script src="scripts/diagram.js"></script>
+  <script src="scripts/charts.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
   "name": "lookmom",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Publish self-contained HTML artifacts to a private, access-controlled URL. CLI for a self-hostable lookmom instance.",
   "type": "module",
   "license": "MIT",
