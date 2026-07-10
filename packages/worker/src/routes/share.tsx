@@ -13,9 +13,11 @@ import {
   setShareMode,
   addToAllowlist,
   setGithubTeamShare,
+  getOwnerGithub,
 } from "../db";
 import { normalizeGithubSlug, isGithubTeamShareAvailable } from "../auth/github";
-import { Gallery, Layout } from "../chrome";
+import { listUserOrgs } from "../github/orgs";
+import { Gallery, GithubOrgTeamFields, Layout, ORG_TEAM_PICKER_SCRIPT } from "../chrome";
 
 const SHARE_MODES: ShareMode[] = ["private", "allowlist", "public", "github_team"];
 
@@ -58,10 +60,22 @@ shareRoutes.get("/share/:id", async (c) => {
   if (art.ownerEmail !== viewer.email) return c.text("Forbidden", 403);
 
   const err = c.req.query("err");
-  const githubConnected = !!viewer.githubLogin;
   const githubAvailable = isGithubTeamShareAvailable(c.env);
   const connectUrl = `/connect/github?return_to=${encodeURIComponent(`/share/${id}`)}`;
   const previewUrl = `/a/${id}`;
+
+  const ownerGh = await getOwnerGithub(db, viewer.email);
+  const githubConnected = !!ownerGh || !!viewer.githubLogin;
+  let githubOrgs: Array<{ login: string; description: string }> = [];
+  let githubOrgsError: string | undefined;
+  if (ownerGh) {
+    try {
+      githubOrgs = await listUserOrgs(ownerGh.accessToken);
+    } catch (e) {
+      console.error("share page list orgs:", e);
+      githubOrgsError = "Could not load organizations. Try reconnecting GitHub.";
+    }
+  }
 
   return c.html(
     <Layout title={`Share — ${art.title}`}>
@@ -151,34 +165,14 @@ shareRoutes.get("/share/:id", async (c) => {
                 </div>
               </div>
             ) : (
-              <div class="callout" style="margin-top:14px">
-                <strong>Organization / team</strong>
-                <p>
-                  Connected as <span class="mono">@{viewer.githubLogin}</span>.
-                  Leave team blank to allow any member of the org.{" "}
-                  <a href={connectUrl}>Manage GitHub connection</a>
-                </p>
-                <label class="field">
-                  Organization
-                  <input
-                    class="text"
-                    name="github_org"
-                    placeholder="acme"
-                    value={art.githubOrg ?? ""}
-                    autocomplete="off"
-                  />
-                </label>
-                <label class="field">
-                  Team (optional)
-                  <input
-                    class="text"
-                    name="github_team"
-                    placeholder="eng"
-                    value={art.githubTeam ?? ""}
-                    autocomplete="off"
-                  />
-                </label>
-              </div>
+              <GithubOrgTeamFields
+                orgs={githubOrgs}
+                selectedOrg={art.githubOrg}
+                selectedTeam={art.githubTeam}
+                githubLogin={ownerGh?.githubLogin ?? viewer.githubLogin}
+                connectUrl={connectUrl}
+                listError={githubOrgsError}
+              />
             )}
 
             <div class="row" style="margin-top:16px">
@@ -208,6 +202,7 @@ shareRoutes.get("/share/:id", async (c) => {
           </form>
         </div>
       </main>
+      <script dangerouslySetInnerHTML={{ __html: ORG_TEAM_PICKER_SCRIPT }} />
     </Layout>,
   );
 });

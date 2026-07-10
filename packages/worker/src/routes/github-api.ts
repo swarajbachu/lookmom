@@ -171,3 +171,49 @@ githubApiRoutes.get("/api/github/orgs/:org/teams", async (c) => {
     return c.json({ error: "github_api_failed" }, 502);
   }
 });
+
+// --- Browser session (owner cookie) — org/team pickers for share UI ----------
+
+githubApiRoutes.get("/api/session/github/orgs", async (c) => {
+  const viewer = c.get("viewer");
+  if (!viewer) return c.json({ error: "unauthorized" }, 401);
+  const db = getDb(c.env.DB);
+  const link = await getOwnerGithub(db, viewer.email);
+  if (!link) {
+    return c.json(
+      {
+        error: "github_not_connected",
+        message: "Connect GitHub in the browser first.",
+      },
+      400,
+    );
+  }
+  try {
+    const orgs = await listUserOrgs(link.accessToken);
+    return c.json({ login: link.githubLogin, orgs });
+  } catch (e) {
+    console.error("session list orgs:", e);
+    return c.json(
+      { error: "github_api_failed", message: "Could not list orgs. Reconnect GitHub." },
+      502,
+    );
+  }
+});
+
+githubApiRoutes.get("/api/session/github/orgs/:org/teams", async (c) => {
+  const viewer = c.get("viewer");
+  if (!viewer) return c.json({ error: "unauthorized" }, 401);
+  const org = c.req.param("org");
+  const db = getDb(c.env.DB);
+  const link = await getOwnerGithub(db, viewer.email);
+  if (!link) return c.json({ error: "github_not_connected" }, 400);
+  try {
+    const teams = await listOrgTeams(link.accessToken, org);
+    return c.json({ org, teams });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === "org_not_found") return c.json({ error: "org_not_found" }, 404);
+    console.error("session list teams:", e);
+    return c.json({ error: "github_api_failed" }, 502);
+  }
+});

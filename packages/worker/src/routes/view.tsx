@@ -8,13 +8,14 @@
  */
 import { Hono } from "hono";
 import type { AppContext, Env, Vars } from "../types";
-import { getArtifact, getVersion, isAllowed, getDb } from "../db";
+import { getArtifact, getVersion, isAllowed, getDb, getOwnerGithub } from "../db";
 import { artifactHeaders } from "../csp";
 import { signGrant, verifyGrant } from "../grants";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
 import { getGithubTokenCookie } from "../auth/session";
 import { isGithubTeamShareAvailable } from "../auth/github";
 import { isGithubTeamMember } from "../github/membership";
+import { listUserOrgs } from "../github/orgs";
 import {
   AccessDenied,
   ArtifactFrame,
@@ -142,6 +143,23 @@ viewRoutes.get("/a/:id", async (c) => {
   const grant = await signGrant(c.env.JWT_SIGNING_SECRET, id, art.currentVersion);
   const rawUrl = `${c.env.ARTIFACT_SANDBOX_HOST}/raw/${id}?grant=${encodeURIComponent(grant)}`;
   const isOwner = !!viewer && viewer.email === art.ownerEmail;
+  let githubOrgs: Array<{ login: string; description: string }> = [];
+  let githubOrgsError: string | undefined;
+  let ownerGhLogin: string | undefined;
+  let ownerGhConnected = false;
+  if (isOwner && viewer) {
+    const link = await getOwnerGithub(db, viewer.email);
+    ownerGhConnected = !!link || !!viewer.githubLogin;
+    ownerGhLogin = link?.githubLogin ?? viewer.githubLogin;
+    if (link) {
+      try {
+        githubOrgs = await listUserOrgs(link.accessToken);
+      } catch (e) {
+        console.error("viewer share list orgs:", e);
+        githubOrgsError = "Could not load organizations. Try reconnecting GitHub.";
+      }
+    }
+  }
   return c.html(
     <ArtifactFrame
       id={id}
@@ -154,13 +172,16 @@ viewRoutes.get("/a/:id", async (c) => {
       shareMode={art.shareMode}
       githubOrg={art.githubOrg}
       githubTeam={art.githubTeam}
-      githubConnected={!!viewer?.githubLogin}
+      githubConnected={ownerGhConnected}
       githubAvailable={isGithubTeamShareAvailable(c.env)}
       connectUrl={
         isOwner
           ? `/connect/github?return_to=${encodeURIComponent(`/a/${id}?shared=1`)}`
           : undefined
       }
+      githubOrgs={githubOrgs}
+      githubOrgsError={githubOrgsError}
+      githubLogin={ownerGhLogin}
     />,
   );
 });
