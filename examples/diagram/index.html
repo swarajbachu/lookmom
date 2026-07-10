@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System diagrams · lookmom</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/diagram.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="kicker">lookmom · diagrams</p>
+        <h1>Architecture & flow</h1>
+        <p class="lede">
+          CSP-safe SVG diagrams — orthogonal arrows, labeled edges, swimlanes,
+          and sequence frames. No Mermaid CDN, no external fonts.
+        </p>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Diagram type">
+        <button type="button" role="tab" data-tab="arch" aria-selected="true">Architecture</button>
+        <button type="button" role="tab" data-tab="flow" aria-selected="false">User flow</button>
+        <button type="button" role="tab" data-tab="seq" aria-selected="false">Sequence</button>
+      </nav>
+    </header>
+
+    <section class="panel" id="panel-arch" data-panel="arch">
+      <div class="panel-head">
+        <div>
+          <h2>Publish path</h2>
+          <p class="sub">Agent → CLI → Worker → R2/D1 → viewer gate</p>
+        </div>
+        <span class="chip">orthogonal · labeled</span>
+      </div>
+      <div
+        class="diagram-host"
+        id="arch-diagram"
+        role="img"
+        aria-label="Architecture diagram of lookmom publish and view path"
+      ></div>
+      <ul class="legend" id="arch-legend"></ul>
+    </section>
+
+    <section class="panel hidden" id="panel-flow" data-panel="flow">
+      <div class="panel-head">
+        <div>
+          <h2>Share decision flow</h2>
+          <p class="sub">How a viewer is allowed (or denied) at the gate</p>
+        </div>
+        <span class="chip">decision tree</span>
+      </div>
+      <div
+        class="diagram-host tall"
+        id="flow-diagram"
+        role="img"
+        aria-label="Decision flow for artifact access at the gate"
+      ></div>
+    </section>
+
+    <section class="panel hidden" id="panel-seq" data-panel="seq">
+      <div class="panel-head">
+        <div>
+          <h2>View handshake</h2>
+          <p class="sub">Gate checks access, signs a short-lived grant, sandbox serves HTML</p>
+        </div>
+        <span class="chip">sequence</span>
+      </div>
+      <div
+        class="diagram-host"
+        id="seq-diagram"
+        role="img"
+        aria-label="Sequence diagram for viewing a private artifact"
+      ></div>
+    </section>
+
+    <footer class="foot">
+      <span>Inline SVG · arrow markers · prefers-color-scheme</span>
+      <span class="mono">examples/diagram</span>
+    </footer>
+  </div>
+
+  <script src="scripts/diagram.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

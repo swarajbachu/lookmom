@@ -1,0 +1,103 @@
+/* Handwriting faces — local files, inlined as data: by lookmom pack */
+@font-face {
+  font-family: "Patrick Hand";
+  src: url("../fonts/PatrickHand-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("../fonts/Caveat-Regular.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Force a soft light sketchbook vibe (playful explainer) */
+  color-scheme: light;
+  --bg: #fbf6eb;
+  --bg-dots: #e8dcc8;
+  --surface: #fffdf7;
+  --surface-2: #fff8e7;
+  --fg: #2a241c;
+  --muted: #6b5e4e;
+  --line: #2a241c;
+  --line-soft: rgba(42, 36, 28, 0.18);
+  --accent: #e85d4c;
+  --accent-2: #3d8bfd;
+  --accent-3: #f0a202;
+  --accent-4: #3faf6c;
+  --accent-5: #9b5de5;
+  --danger: #e85d4c;
+  --ink: #2a241c;
+  --paper-shadow: 3px 4px 0 rgba(42, 36, 28, 0.12);
+  --radius: 18px;
+  --radius-sm: 14px;
+  --font: "Patrick Hand", "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", "Comic Sans MS", cursive;
+  --font-display: "Caveat", "Patrick Hand", "Segoe Print", cursive;
+  --mono: "Patrick Hand", ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* diagram (sketch ink) */
+  --d-edge: #5c5346;
+  --d-edge-strong: #2a241c;
+  --d-label-bg: #fffdf7;
+  --d-label-fg: #3d3428;
+  --d-node-bg: #fffdf7;
+  --d-node-fg: #2a241c;
+  --d-node-sub: #6b5e4e;
+  --d-lane: rgba(240, 162, 2, 0.08);
+  --d-lane-border: rgba(42, 36, 28, 0.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font: 19px/1.45 var(--font);
+  color: var(--fg);
+  background-color: var(--bg);
+  /* graph-paper + soft wash */
+  background-image:
+    radial-gradient(ellipse 900px 500px at 12% -5%, rgba(232, 93, 76, 0.12), transparent 55%),
+    radial-gradient(ellipse 700px 420px at 95% 5%, rgba(61, 139, 253, 0.12), transparent 50%),
+    radial-gradient(ellipse 600px 400px at 50% 100%, rgba(63, 175, 108, 0.1), transparent 55%),
+    radial-gradient(var(--bg-dots) 1.1px, transparent 1.1px);
+  background-size: auto, auto, auto, 18px 18px;
+  background-attachment: fixed;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+  letter-spacing: 0.01em;
+  margin: 0;
+  font-weight: 700;
+}
+h1 {
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  line-height: 1.05;
+  color: var(--ink);
+  transform: rotate(-0.6deg);
+}
+h2 {
+  font-size: clamp(1.55rem, 2.5vw, 1.85rem);
+  line-height: 1.15;
+  transform: rotate(-0.3deg);
+}
+h3 { font-size: 1.25rem; }
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: normal;
+}

@@ -1,0 +1,134 @@
+/* Sketchy SVG diagram chrome — ink pen on notebook paper */
+
+.diagram-host .lane {
+  fill: var(--d-lane);
+  stroke: var(--d-lane-border);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+}
+
+.diagram-host .lane-title {
+  fill: var(--muted);
+  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.diagram-host .node-shell {
+  fill: var(--d-node-bg);
+  stroke: var(--ink, #2a241c);
+  stroke-width: 2.4;
+  /* slightly imperfect via filter if present */
+  filter: url(#sketch-wobble);
+}
+
+.diagram-host .node-title {
+  fill: var(--d-node-fg);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.diagram-host .node-sub {
+  fill: var(--d-node-sub);
+  font-size: 13px;
+  font-family: var(--font);
+}
+
+.diagram-host .node-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.diagram-host .edge {
+  fill: none;
+  stroke: var(--d-edge);
+  stroke-width: 2.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* hand-drawn dash rhythm */
+  stroke-dasharray: 1 0;
+}
+
+.diagram-host .edge.strong {
+  stroke-width: 2.75;
+}
+
+.diagram-host .edge.dashed {
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+}
+
+.diagram-host .edge-label-bg {
+  fill: var(--d-label-bg);
+  stroke: var(--ink, #2a241c);
+  stroke-width: 1.8;
+}
+
+.diagram-host .edge-label {
+  fill: var(--d-label-fg);
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.diagram-host .lifeline {
+  stroke: var(--d-edge);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 7;
+  stroke-linecap: round;
+}
+
+.diagram-host .actor-title {
+  fill: var(--d-node-fg);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.diagram-host .msg-label {
+  fill: var(--d-label-fg);
+  font-size: 14px;
+  font-weight: 400;
+  font-family: var(--font);
+}
+
+.diagram-host .note-box {
+  fill: #fff3c4;
+  stroke: var(--ink, #2a241c);
+  stroke-width: 1.8;
+  stroke-dasharray: 5 4;
+}
+
+.diagram-host .note-text {
+  fill: var(--d-node-fg);
+  font-size: 13.5px;
+  font-family: var(--font);
+}
+
+.diagram-host .diamond-shell {
+  fill: #fff9e6;
+  stroke: var(--ink, #2a241c);
+  stroke-width: 2.3;
+}
+
+.diagram-host .diamond-title {
+  fill: var(--d-node-fg);
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  text-anchor: middle;
+}
+
+.diagram-host .edge-group:hover .edge {
+  stroke-width: 3.1;
+}
+
+/* soft paper shadow under nodes without harsh drop */
+.diagram-host .node-shell {
+  filter: drop-shadow(2px 2px 0 rgba(42, 36, 28, 0.12));
+}

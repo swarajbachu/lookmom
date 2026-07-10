@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signup funnel · lookmom</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/charts.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="kicker">Last 7 days</p>
+        <h1>Signup funnel</h1>
+        <p class="lede">Self-contained multi-file artifact — CSS, charts, and partials pack into one HTML page.</p>
+      </div>
+      <div class="stat-row" id="kpis"></div>
+    </header>
+
+    <!-- lookmom:include partials/filters.html -->
+
+    <section class="grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Daily signups</h2>
+          <span class="chip">bar</span>
+        </div>
+        <div class="chart-wrap" id="bar-chart" role="img" aria-label="Bar chart of daily signups"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Channel mix</h2>
+          <span class="chip">donut</span>
+        </div>
+        <div class="chart-wrap donut" id="donut-chart" role="img" aria-label="Donut chart of signup channels"></div>
+        <ul class="legend" id="legend"></ul>
+      </article>
+
+      <article class="panel wide">
+        <div class="panel-head">
+          <h2>Funnel conversion</h2>
+          <span class="chip">flow</span>
+        </div>
+        <div class="chart-wrap" id="funnel" role="img" aria-label="Conversion funnel diagram"></div>
+      </article>
+    </section>
+
+    <footer class="foot">
+      <span>Built for lookmom CSP · no external requests</span>
+      <span class="mono" id="stamp"></span>
+    </footer>
+  </div>
+
+  <script src="scripts/data.js"></script>
+  <script src="scripts/charts.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

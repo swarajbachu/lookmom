@@ -58,14 +58,17 @@ shareRoutes.get("/share/:id", async (c) => {
     <Layout title={`Share — ${art.title}`}>
       <div class="wrap">
         <div class="card">
-          <h1>Share “{art.title}”</h1>
-          <p>
-            <a href={`${c.env.APP_HOST}/a/${id}`}>{c.env.APP_HOST}/a/{id}</a>
+          <p class="kicker">Share</p>
+          <h1>{art.title}</h1>
+          <p style="margin-bottom:14px">
+            <a class="link-chip" href={`${c.env.APP_HOST}/a/${id}`}>
+              {c.env.APP_HOST}/a/{id}
+            </a>
           </p>
           {err ? <p class="err">{err}</p> : null}
 
           <form method="post" action={`/share/${id}/mode`} style="margin-bottom:28px">
-            <strong>Who can view</strong>
+            <span class="section-label">Who can view</span>
 
             <label class="share-opt">
               <input
@@ -130,7 +133,7 @@ shareRoutes.get("/share/:id", async (c) => {
             ) : !githubConnected ? (
               <div class="callout" style="margin-top:14px">
                 <strong>Connect GitHub to enable org share</strong>
-                <p style="margin:8px 0 0">
+                <p>
                   Before sharing with an organization, connect your GitHub account
                   so membership checks can run. This only requests org read
                   access.
@@ -144,7 +147,7 @@ shareRoutes.get("/share/:id", async (c) => {
             ) : (
               <div class="callout" style="margin-top:14px">
                 <strong>Organization / team</strong>
-                <p style="margin:6px 0 0;font-size:13px">
+                <p>
                   Connected as <span class="mono">@{viewer.githubLogin}</span>.
                   Leave team blank to allow any member of the org.{" "}
                   <a href={connectUrl}>Manage GitHub connection</a>
@@ -156,7 +159,7 @@ shareRoutes.get("/share/:id", async (c) => {
                     name="github_org"
                     placeholder="acme"
                     value={art.githubOrg ?? ""}
-                    style="margin-top:6px"
+                    autocomplete="off"
                   />
                 </label>
                 <label class="field">
@@ -166,27 +169,31 @@ shareRoutes.get("/share/:id", async (c) => {
                     name="github_team"
                     placeholder="eng"
                     value={art.githubTeam ?? ""}
-                    style="margin-top:6px"
+                    autocomplete="off"
                   />
                 </label>
               </div>
             )}
 
-            <div style="margin-top:16px">
+            <div class="row" style="margin-top:16px">
               <button class="btn" type="submit">
-                Save
+                Save access
               </button>
+              <a class="btn ghost" href={`/a/${id}`}>
+                View artifact
+              </a>
             </div>
           </form>
 
           <form method="post" action={`/share/${id}/allow`}>
-            <strong>Add emails (for “Specific people”)</strong>
+            <span class="section-label">Add emails (for “Specific people”)</span>
             <textarea
+              class="text"
               name="emails"
               placeholder="alice@example.com, bob@example.com"
-              style="width:100%;min-height:90px;margin-top:8px;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--fg)"
+              aria-label="Emails to allow"
             />
-            <div style="margin-top:10px">
+            <div class="row" style="margin-top:12px">
               <button class="btn secondary" type="submit">
                 Add emails
               </button>

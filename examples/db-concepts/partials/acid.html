@@ -1,0 +1,53 @@
+<section class="section" id="acid">
+  <div class="section-head">
+    <div>
+      <p class="num">04</p>
+      <h2>ACID makes multi-step changes safe</h2>
+      <p>
+        A <strong style="color:var(--fg);font-weight:600">transaction</strong> groups statements so they
+        succeed together or not at all. ACID is the classic guarantee set.
+      </p>
+    </div>
+    <span class="chip">transactions</span>
+  </div>
+
+  <div class="acid-grid">
+    <article class="acid-card">
+      <span class="letter" style="background:var(--accent)">A</span>
+      <h3>Atomicity</h3>
+      <p>All statements commit, or none do. No half-applied transfers.</p>
+    </article>
+    <article class="acid-card">
+      <span class="letter" style="background:var(--accent-2)">C</span>
+      <h3>Consistency</h3>
+      <p>Constraints hold before and after — FKs, checks, unique keys.</p>
+    </article>
+    <article class="acid-card">
+      <span class="letter" style="background:var(--accent-3)">I</span>
+      <h3>Isolation</h3>
+      <p>Concurrent transactions don’t see each other’s dirty mid-states.</p>
+    </article>
+    <article class="acid-card">
+      <span class="letter" style="background:var(--accent-4)">D</span>
+      <h3>Durability</h3>
+      <p>Once committed, data survives crashes (WAL / fsync / replicas).</p>
+    </article>
+  </div>
+
+  <div
+    class="diagram-host md"
+    id="acid-diagram"
+    role="img"
+    aria-label="Money transfer transaction with commit or rollback"
+    style="margin-top:16px"
+  ></div>
+
+  <div class="callout" style="margin-top:12px">
+    <strong>Why apps care</strong>
+    <p>
+      “Debit Alice, credit Bob” is two writes. Without a transaction, a crash
+      between them loses money. With <code>BEGIN … COMMIT</code>, the database
+      either applies both or rolls back to the prior balance.
+    </p>
+  </div>
+</section>

@@ -31,11 +31,13 @@ You: lookmom share <id> --email teammate@acme.com
 
 ## What it is
 
-A lookmom **artifact** is a single, self-contained HTML page — all CSS, JavaScript, and images inlined, no external requests — published to a URL like `https://lookmom.stuff.md/a/<id>`. It's a *capture of work*, not a hosted app: no backend, no database at view-time, one page.
+A lookmom **artifact** is a self-contained HTML page — all CSS, JavaScript, and images inlined, no external requests — published to a URL like `https://lookmom.stuff.md/a/<id>`. It's a *capture of work*, not a hosted app: no backend, no database at view-time, one page.
+
+You can author **one file** or a **multi-file project** (`index.html` + CSS/JS/partials). The CLI bundles local assets automatically so agents can keep code clean while the published page stays CSP-safe — closer to Claude Artifacts / Design workflows.
 
 Three things make it useful:
 
-1. **Agents publish directly.** A CLI (`lookmom`) plus a skill let Claude write a page and publish it without you copy-pasting anything.
+1. **Agents publish directly.** A CLI (`lookmom`) plus a skill let Claude write a page (or project folder) and publish it without you copy-pasting anything.
 2. **Real access control.** Every artifact is `private` (only you), `allowlist` (only the emails you name), `github_team` (current members of a GitHub org/team), or `public`. Viewers sign in with Google, a magic link, or GitHub (for team-shared artifacts).
 3. **It's free.** Cloudflare Workers + D1 + R2 + WorkOS all have generous free tiers; a personal instance costs **$0**.
 
@@ -44,17 +46,20 @@ Three things make it useful:
 ## How it works
 
 ```
-  Claude (skill) ── writes ──▶ self-contained HTML file
+  Claude (skill) ── writes ──▶ file.html  OR  project/ (index.html + css/js)
+        │                              │
+        │                              └─ auto-bundle local assets
         │
-        ├─ lookmom preview file.html ─▶ localhost (same CSP as prod, live-reload)
+        ├─ lookmom preview <path> ─▶ localhost (same CSP as prod, live-reload)
+        ├─ lookmom pack <path> -o out.html ─▶ inspect the bundled document
         │
-        └─ lookmom publish file.html ──(agent token)──▶  ┌──────────────────────┐
-                                                          │   Cloudflare Worker  │
-                                                          │  ┌────────────────┐  │
-                                  HTML bytes ─────────────┼─▶│      R2        │  │
-                                  metadata + allowlist ───┼─▶│      D1        │  │
-                                                          │  └────────────────┘  │
-                                                          └──────────────────────┘
+        └─ lookmom publish <path> ──(agent token)──▶  ┌──────────────────────┐
+                                                       │   Cloudflare Worker  │
+                                                       │  ┌────────────────┐  │
+                               bundled HTML bytes ─────┼─▶│      R2        │  │
+                               metadata + allowlist ───┼─▶│      D1        │  │
+                                                       │  └────────────────┘  │
+                                                       └──────────────────────┘
 
   A viewer opens  https://lookmom.stuff.md/a/<id>   (the "gate")
         │
@@ -115,33 +120,73 @@ bun run packages/cli/src/cli.ts <command>
 | Command | What it does |
 | --- | --- |
 | `lookmom login` | Authorize this device (auth.md OTP flow). Token cached in `~/.lookmom/`. |
-| `lookmom preview <file>` | Serve a file locally under the **exact production CSP** + live-reload. |
-| `lookmom publish <file>` | Publish (or `--update <id\|url>`) an artifact. `--title --emoji --share`. |
+| `lookmom preview <path>` | Serve a **file or project dir** under the **exact production CSP** + live-reload. Multi-file projects re-bundle on save. |
+| `lookmom pack <path> -o out.html` | Bundle multi-file HTML/CSS/JS/partials into one self-contained HTML file. |
+| `lookmom publish <path>` | Publish (or `--update <id\|url>`) an artifact. Accepts a file or directory with `index.html`. `--title --emoji --share`. |
 | `lookmom share <id\|url>` | Manage access: `--email a@b`, `--mode private\|allowlist\|public\|github_team`, `--github-org`, `--github-team`. |
 | `lookmom list` | List your artifacts. |
 | `lookmom logout` | Revoke the token and forget it. |
+
+### Multi-file projects
+
+```
+my-dashboard/
+  index.html
+  styles/tokens.css
+  styles/layout.css
+  scripts/data.js
+  scripts/app.js
+  partials/header.html   # optional: <!-- lookmom:include partials/header.html -->
+```
+
+```bash
+lookmom preview ./my-dashboard
+lookmom publish ./my-dashboard --title "Signup funnel" --emoji 📊
+```
+
+The bundler inlines local stylesheets, scripts, images (`data:` URIs), CSS `@import`/`url()`, and `<!-- lookmom:include … -->` partials. External CDNs still fail under CSP — which is intentional.
+
+Examples:
+
+- `examples/hello-artifact.html` — tiny single-file page
+- `examples/dashboard/` — multi-file KPIs + bar/donut/funnel charts
+- `examples/diagram/` — architecture / decision-flow / sequence diagrams (SVG arrows, swimlanes)
+- `examples/db-concepts/` — interactive explainer (tables, keys, indexes, ACID, joins)
+
+See the agent skills below for design craft and CLI publishing.
 
 Defaults to production (`https://lookmom.stuff.md`). Override with `--api <url>` or `$LOOKMOM_API_URL` (e.g. `http://localhost:8787` for local).
 
 ---
 
-## The skill
+## Agent skills (downloadable)
 
-lookmom ships an agent **skill** so Claude (or any compatible agent) automatically writes CSP-safe, self-contained HTML and publishes it when you ask for an artifact — no copy-pasting.
+Two complementary skills ship in this repo so agents can install what they need:
 
-Install it with [`skills`](https://github.com/vercel-labs/skills), the open agent-skills installer (works with Claude Code, Cursor, Codex, and 60+ agents):
+| Skill | Path | Use it for |
+| --- | --- | --- |
+| **lookmom** | [`skills/lookmom/SKILL.md`](skills/lookmom/SKILL.md) | CLI: login, preview, pack, publish, share, GitHub org access, CSP contract |
+| **lookmom-design** | [`skills/lookmom-design/SKILL.md`](skills/lookmom-design/SKILL.md) | Craft: diagrams, concept explainers, mockups, charts, multi-file layout, sketch style |
+
+Install with [`skills`](https://github.com/vercel-labs/skills) (Claude Code, Cursor, Codex, and 60+ agents):
 
 ```bash
+# both skills from this repo
 npx skills add swarajbachu/lookmom
+
+# or copy a single skill directory into your agent's skills folder:
+#   skills/lookmom/
+#   skills/lookmom-design/
 ```
 
-That fetches `skills/lookmom/SKILL.md` and drops it into your agent's skills directory — no manual path config. Once it's installed, just ask:
+Typical pairing:
 
-> *"make me a dashboard of last week's signups as an artifact"*
+> *"Explain database indexes visually and publish it as an artifact"*
 
-…and the agent writes the page, runs `lookmom preview` / `lookmom publish`, and hands you the private URL. The skill teaches the agent the self-contained-HTML rules (inline everything, no external requests) so pages render correctly under the [strict CSP](#2-strict-content-security-policy--no-external-requests-ever).
+- **lookmom-design** → multi-file explainer + diagrams (like `examples/db-concepts/`)
+- **lookmom** → `lookmom preview` / `lookmom publish` / share
 
-> The skill drives the `lookmom` CLI, so install and authorize the CLI first (`lookmom login`). The skill source lives in this repo at [`skills/lookmom/SKILL.md`](skills/lookmom/SKILL.md).
+> The **lookmom** skill drives the CLI — install and authorize it first (`lookmom login`).
 
 ---
 
@@ -167,12 +212,13 @@ Every artifact is served under a strict CSP:
 ```
 default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';
 img-src data: blob:; font-src data:; connect-src 'none';
-base-uri 'none'; form-action 'none'; frame-ancestors 'none';
+base-uri 'none'; form-action 'none'; frame-ancestors <gate-origin>;
 sandbox allow-scripts allow-popups allow-downloads
 ```
 
 - `connect-src 'none'` **blocks `fetch`, `XMLHttpRequest`, and WebSockets** — an artifact cannot phone home, exfiltrate data, or load a tracker.
 - `default-src 'none'` + `img-src data:` mean **no external scripts, styles, fonts, or images** load at all. Everything must be inlined, so the page can't be a vector for third-party content.
+- `frame-ancestors` allows **only the lookmom gate** to embed the page (so random sites can’t iframe your artifact). Local preview uses `frame-ancestors 'self'`.
 - The `sandbox` directive gives the page an **opaque origin** on top of the iframe's own `sandbox` attribute — defense in depth.
 
 `lookmom preview` serves your file under this *exact* CSP locally, so anything that would break in production breaks on your machine first.
@@ -289,9 +335,15 @@ packages/
       ratelimit.ts quota.ts   Layer 1 + Layer 2 abuse protection
   cli/           the `lookmom` CLI (login, preview, publish, share, list)
 skills/
-  lookmom/       the agent skill — `npx skills add swarajbachu/lookmom`
-examples/        a sample artifact
+  lookmom/          CLI + publish/share skill
+  lookmom-design/   diagrams / explainers / mockups skill
+examples/
+  hello-artifact.html
+  dashboard/        multi-file charts
+  diagram/          architecture + sequence SVG
+  db-concepts/      sketch-style interactive explainer
 ```
+
 
 ---
 

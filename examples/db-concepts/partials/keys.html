@@ -1,0 +1,38 @@
+<section class="section" id="keys">
+  <div class="section-head">
+    <div>
+      <p class="num">02</p>
+      <h2>Keys link rows across tables</h2>
+      <p>
+        A <strong style="color:var(--fg);font-weight:600">primary key</strong> uniquely identifies a row.
+        A <strong style="color:var(--fg);font-weight:600">foreign key</strong> points at another table’s key —
+        that’s how relationships are expressed without duplicating whole records.
+      </p>
+    </div>
+    <span class="chip">identity</span>
+  </div>
+
+  <div
+    class="diagram-host md"
+    id="keys-diagram"
+    role="img"
+    aria-label="Users and orders linked by foreign key user_id"
+  ></div>
+
+  <div class="grid-2" style="margin-top:8px">
+    <div class="callout">
+      <strong>Primary key (PK)</strong>
+      <p>
+        Stable, unique, never null. Often a surrogate like <code>id</code> or a
+        natural key like <code>email</code> when truly immutable.
+      </p>
+    </div>
+    <div class="callout">
+      <strong>Foreign key (FK)</strong>
+      <p>
+        <code>orders.user_id → users.id</code>. Enables joins and (optionally)
+        cascade rules when a parent row is deleted or updated.
+      </p>
+    </div>
+  </div>
+</section>

@@ -18,8 +18,10 @@ import {
   githubStatus,
   githubTeams,
 } from "./github";
+import { packToFile } from "./bundle";
 import { startPreview } from "./preview";
 import { c, info, ok, die, warn } from "./util";
+import { relative } from "node:path";
 
 type Flags = { _: string[] } & Record<string, string | string[] | boolean>;
 
@@ -30,13 +32,23 @@ function parse(argv: string[]): Flags {
     if (a.startsWith("--")) {
       const key = a.slice(2);
       const next = argv[i + 1];
-      if (next === undefined || next.startsWith("--")) {
+      if (next === undefined || next.startsWith("-")) {
         f[key] = true;
       } else {
         // repeated flags accumulate into an array
         if (f[key] === undefined) f[key] = next;
         else if (Array.isArray(f[key])) (f[key] as string[]).push(next);
         else f[key] = [f[key] as string, next];
+        i++;
+      }
+    } else if (a.startsWith("-") && a.length === 2) {
+      // short flags: -o out.html
+      const key = a.slice(1);
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith("-")) {
+        f[key] = true;
+      } else {
+        f[key] = next;
         i++;
       }
     } else {
@@ -62,14 +74,19 @@ ${c.bold("Usage")}
   lookmom login                       Authorize this device (auth.md / WorkOS)
   lookmom logout                      Revoke + forget the cached token
   lookmom whoami                      Show login status
-  lookmom preview <file> [--port n]   Serve <file> locally under production CSP
-  lookmom publish <file> [opts]       Publish (or update) an artifact
+  lookmom preview <path> [--port n]   Serve file OR project dir under production CSP
+  lookmom pack <path> -o out.html     Bundle multi-file project → one HTML file
+  lookmom publish <path> [opts]       Publish (or update) an artifact
   lookmom share <id|url> [opts]       Manage who can view an artifact
   lookmom list                        List your artifacts
   lookmom github login                Connect GitHub via WorkOS (for org share)
   lookmom github orgs                 List orgs you can share with
   lookmom github teams --org <org>    List teams in an org
   lookmom github status | logout
+
+${c.bold("path")} can be a single .html file or a directory with index.html.
+Multi-file projects are bundled automatically: local CSS, JS, images, and
+<!-- lookmom:include partial.html --> are inlined for the strict CSP.
 
 ${c.bold("publish options")}
   --update <id|url>   Republish a new version to an existing artifact
@@ -78,6 +95,9 @@ ${c.bold("publish options")}
   --share <mode>      private | allowlist | public | github_team   (default: private)
   --github-org <org>  GitHub org slug (required with --share github_team)
   --github-team <t>   Optional GitHub team slug within the org
+
+${c.bold("pack options")}
+  -o, --out <file>    Output path for the bundled HTML (required)
 
 ${c.bold("share options")}
   --email <addr>      Add an allowed viewer (repeatable)
@@ -151,16 +171,34 @@ async function main() {
     }
     case "preview": {
       const file = flags._[1];
-      if (!file) die("Usage: lookmom preview <file>");
+      if (!file) die("Usage: lookmom preview <file|dir>");
       const port = Number(asStr(flags.port) ?? "4321");
       startPreview(file, port);
       // keep process alive
       await new Promise(() => {});
       break;
     }
+    case "pack": {
+      const input = flags._[1];
+      const out = asStr(flags.out) ?? asStr(flags.o);
+      if (!input || !out) die("Usage: lookmom pack <file|dir> -o <out.html>");
+      const result = packToFile(input, out);
+      for (const w of result.warnings) warn(w);
+      ok(
+        `Packed ${c.bold(relative(process.cwd(), result.entry) || result.entry)} → ${c.bold(out)}`,
+      );
+      info(
+        c.dim(
+          `  ${result.inlined.length} files · ${(result.bytes / 1024).toFixed(1)} KB`,
+        ),
+      );
+      break;
+    }
     case "publish": {
       const file = flags._[1];
-      if (!file) die("Usage: lookmom publish <file> [--update <id|url>] [--title ..] [--share ..]");
+      if (!file) {
+        die("Usage: lookmom publish <file|dir> [--update <id|url>] [--title ..] [--share ..]");
+      }
       const githubOrg = asStr(flags["github-org"]);
       const githubTeam = asStr(flags["github-team"]);
       let share = asStr(flags.share);
