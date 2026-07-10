@@ -67,7 +67,7 @@ shareRoutes.get("/share/:id", async (c) => {
     <Layout title={`Share — ${art.title}`}>
       <header class="nav">
         <a class="nav-brand" href="/gallery">
-          <img class="nav-mark" src="/logo.png" width={24} height={24} alt="" />
+          <img class="nav-mark" src="/logo.png" width={28} height={28} alt="lookmom" />
           lookmom
         </a>
         <div class="nav-actions">
@@ -78,7 +78,7 @@ shareRoutes.get("/share/:id", async (c) => {
       </header>
       <main class="shell-main narrow">
         <div class="card">
-          <p class="kicker">Share settings</p>
+          <p class="kicker">pass it on</p>
           <h1>{art.title}</h1>
           <p style="margin:10px 0 16px">
             <a class="link-chip" href={`${c.env.APP_HOST}/a/${id}`}>
