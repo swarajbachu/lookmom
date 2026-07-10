@@ -23,15 +23,20 @@ export interface Env {
   WORKOS_CLIENT_ID: string;
   WORKOS_REDIRECT_URI: string;
   DEV_ALLOWLIST: string;
+  /** Optional override; defaults to `${APP_HOST}/auth/github/callback`. */
+  GITHUB_OAUTH_REDIRECT_URI?: string;
 
   // Secrets (wrangler secret put / .dev.vars)
   WORKOS_API_KEY: string;
   JWT_SIGNING_SECRET: string;
+  /** Optional direct GitHub OAuth App (fallback if WorkOS GitHub isn’t used). */
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
 }
 
 export interface Vars {
   /** Set by viewer-session middleware once a human is authenticated. */
-  viewer?: { email: string; name?: string };
+  viewer?: { email: string; name?: string; githubLogin?: string };
   /** Set by agent-token middleware once a publisher token is verified. */
   agent?: { ownerEmail: string; scopes: string[] };
 }

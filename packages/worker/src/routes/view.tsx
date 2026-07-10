@@ -12,7 +12,15 @@ import { getArtifact, getVersion, isAllowed, getDb } from "../db";
 import { artifactHeaders } from "../csp";
 import { signGrant, verifyGrant } from "../grants";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
-import { AccessDenied, ArtifactFrame, LoginPrompt } from "../chrome";
+import { getGithubTokenCookie } from "../auth/session";
+import { isGithubTeamShareAvailable } from "../auth/github";
+import { isGithubTeamMember } from "../github/membership";
+import {
+  AccessDenied,
+  ArtifactFrame,
+  GithubNotConfigured,
+  LoginPrompt,
+} from "../chrome";
 
 export const viewRoutes = new Hono<{ Bindings: Env; Variables: Vars }>();
 
@@ -37,16 +45,97 @@ viewRoutes.get("/a/:id", async (c) => {
 
   const viewer = c.get("viewer");
   const loginUrl = `/auth/login?return_to=${encodeURIComponent(`/a/${id}`)}`;
+  const githubLoginUrl = `/auth/github?return_to=${encodeURIComponent(`/a/${id}`)}&purpose=viewer`;
 
   // Decide access.
   let allowed = art.shareMode === "public";
   if (!allowed) {
-    if (!viewer) return c.html(<LoginPrompt title={art.title} loginUrl={loginUrl} />);
-    if (viewer.email === art.ownerEmail) allowed = true;
-    else if (art.shareMode === "allowlist") allowed = await isAllowed(db, id, viewer.email);
+    if (!viewer) {
+      return c.html(
+        <LoginPrompt
+          title={art.title}
+          loginUrl={loginUrl}
+          githubLoginUrl={
+            art.shareMode === "github_team" ? githubLoginUrl : undefined
+          }
+          teamShare={art.shareMode === "github_team"}
+        />,
+      );
+    }
+    if (viewer.email === art.ownerEmail) {
+      allowed = true;
+    } else if (art.shareMode === "allowlist") {
+      allowed = await isAllowed(db, id, viewer.email);
+    } else if (art.shareMode === "github_team") {
+      if (!art.githubOrg) {
+        return c.html(
+          <AccessDenied
+            email={viewer.email}
+            switchUrl={loginUrl}
+            message="This artifact is set to GitHub org share but has no organization configured."
+          />,
+        );
+      }
+      if (!isGithubTeamShareAvailable(c.env)) {
+        return c.html(<GithubNotConfigured />);
+      }
+      if (!viewer.githubLogin) {
+        return c.html(
+          <LoginPrompt
+            title={art.title}
+            loginUrl={loginUrl}
+            githubLoginUrl={githubLoginUrl}
+            teamShare
+            message="This artifact is shared with a GitHub organization. Sign in with GitHub so we can check membership."
+          />,
+        );
+      }
+
+      const result = await isGithubTeamMember(db, {
+        githubLogin: viewer.githubLogin,
+        org: art.githubOrg,
+        team: art.githubTeam,
+        accessToken: getGithubTokenCookie(c),
+      });
+
+      if (result.reason === "needs_github") {
+        return c.html(
+          <LoginPrompt
+            title={art.title}
+            loginUrl={loginUrl}
+            githubLoginUrl={githubLoginUrl}
+            teamShare
+            message="Your GitHub session expired. Sign in with GitHub again to refresh membership."
+          />,
+        );
+      }
+      if (result.reason === "error") {
+        return c.html(
+          <AccessDenied
+            email={viewer.email}
+            switchUrl={githubLoginUrl}
+            message="We couldn’t verify your GitHub organization membership right now. Try again, or sign in with a different GitHub account."
+          />,
+        );
+      }
+      allowed = result.allowed;
+    }
   }
+
   if (!allowed) {
-    return c.html(<AccessDenied email={viewer!.email} switchUrl={loginUrl} />);
+    return c.html(
+      <AccessDenied
+        email={viewer!.email}
+        switchUrl={
+          art.shareMode === "github_team" ? githubLoginUrl : loginUrl
+        }
+        message={
+          art.shareMode === "github_team"
+            ? `You’re signed in as ${viewer!.githubLogin ? `@${viewer!.githubLogin}` : viewer!.email}, which isn’t a member of the shared GitHub ${art.githubTeam ? `team ${art.githubOrg}/${art.githubTeam}` : `org ${art.githubOrg}`}.`
+            : undefined
+        }
+      />,
+    );
   }
 
   // Issue a short-lived grant and hand off to the cookieless sandbox host.

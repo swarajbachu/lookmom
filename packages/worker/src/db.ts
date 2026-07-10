@@ -119,9 +119,82 @@ export async function addToAllowlist(
 export async function setShareMode(db: DB, artifactId: string, mode: ShareMode): Promise<void> {
   await db
     .update(schema.artifacts)
-    .set({ shareMode: mode, updatedAt: now() })
+    .set({
+      shareMode: mode,
+      updatedAt: now(),
+      // Leaving github_team clears org/team so settings don't surprise later.
+      ...(mode !== "github_team" ? { githubOrg: null, githubTeam: null } : {}),
+    })
     .where(eq(schema.artifacts.id, artifactId));
 }
+
+/** Set github_team share mode with org (+ optional team slug). */
+export async function setGithubTeamShare(
+  db: DB,
+  artifactId: string,
+  args: { org: string; team?: string | null },
+): Promise<void> {
+  const org = args.org.toLowerCase();
+  const team = args.team?.trim() ? args.team.trim().toLowerCase() : null;
+  await db
+    .update(schema.artifacts)
+    .set({
+      shareMode: "github_team",
+      githubOrg: org,
+      githubTeam: team,
+      updatedAt: now(),
+    })
+    .where(eq(schema.artifacts.id, artifactId));
+}
+
+const MEMBERSHIP_CACHE_TTL_SECONDS = 15 * 60;
+
+export async function getMembershipCache(
+  db: DB,
+  githubLogin: string,
+  org: string,
+  team: string,
+): Promise<{ isMember: boolean; checkedAt: number } | null> {
+  const row = await db.query.githubMembershipCache.findFirst({
+    where: and(
+      eq(schema.githubMembershipCache.githubLogin, githubLogin.toLowerCase()),
+      eq(schema.githubMembershipCache.org, org.toLowerCase()),
+      eq(schema.githubMembershipCache.team, team.toLowerCase()),
+    ),
+  });
+  if (!row) return null;
+  if (now() - row.checkedAt > MEMBERSHIP_CACHE_TTL_SECONDS) return null;
+  return { isMember: row.isMember === 1, checkedAt: row.checkedAt };
+}
+
+export async function putMembershipCache(
+  db: DB,
+  args: { githubLogin: string; org: string; team: string; isMember: boolean },
+): Promise<void> {
+  const ts = now();
+  const login = args.githubLogin.toLowerCase();
+  const org = args.org.toLowerCase();
+  const team = args.team.toLowerCase();
+  await db
+    .insert(schema.githubMembershipCache)
+    .values({
+      githubLogin: login,
+      org,
+      team,
+      isMember: args.isMember ? 1 : 0,
+      checkedAt: ts,
+    })
+    .onConflictDoUpdate({
+      target: [
+        schema.githubMembershipCache.githubLogin,
+        schema.githubMembershipCache.org,
+        schema.githubMembershipCache.team,
+      ],
+      set: { isMember: args.isMember ? 1 : 0, checkedAt: ts },
+    });
+}
+
+export { MEMBERSHIP_CACHE_TTL_SECONDS };
 
 // --- Agent token revocation -------------------------------------------------
 

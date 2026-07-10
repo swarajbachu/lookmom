@@ -14,14 +14,16 @@ import {
   listArtifactsByOwner,
   setShareMode,
   addToAllowlist,
+  setGithubTeamShare,
 } from "../db";
 import { assertPublishAllowed, QuotaExceeded } from "../quota";
 import { MAX_ARTIFACT_BYTES } from "../csp";
 import { requireAgent, PUBLISH_SCOPE } from "../auth/agent";
+import { isGithubTeamShareAvailable, normalizeGithubSlug } from "../auth/github";
 import { enforce, RateLimited } from "../ratelimit";
 import { randomId } from "../util";
 
-const SHARE_MODES: ShareMode[] = ["private", "allowlist", "public"];
+const SHARE_MODES: ShareMode[] = ["private", "allowlist", "public", "github_team"];
 
 export const publishRoutes = new Hono<{ Bindings: Env; Variables: Vars }>();
 
@@ -41,6 +43,8 @@ publishRoutes.get("/api/artifacts", async (c) => {
       title: a.title,
       emoji: a.emoji,
       share_mode: a.shareMode,
+      github_org: a.githubOrg ?? null,
+      github_team: a.githubTeam ?? null,
       version: a.currentVersion,
       url: `${c.env.APP_HOST}/a/${a.id}`,
       updated_at: a.updatedAt,
@@ -57,18 +61,65 @@ publishRoutes.post("/api/artifacts/:id/share", async (c) => {
   if (!art) return c.json({ error: "not_found" }, 404);
   if (art.ownerEmail !== owner) return c.json({ error: "forbidden" }, 403);
 
-  const body = (await c.req.json().catch(() => ({}))) as { mode?: string; emails?: string[] };
-  if (body.mode && SHARE_MODES.includes(body.mode as ShareMode)) {
-    await setShareMode(db, id, body.mode as ShareMode);
+  const body = (await c.req.json().catch(() => ({}))) as {
+    mode?: string;
+    emails?: string[];
+    github_org?: string;
+    github_team?: string | null;
+  };
+
+  const mode = body.mode as ShareMode | undefined;
+  if (mode && !SHARE_MODES.includes(mode)) {
+    return c.json({ error: "invalid_mode" }, 400);
   }
+
+  // Resolve effective mode: explicit mode, or github_team if org provided.
+  let effectiveMode = mode;
+  if (!effectiveMode && body.github_org) effectiveMode = "github_team";
+
+  if (effectiveMode === "github_team") {
+    if (!isGithubTeamShareAvailable(c.env)) {
+      return c.json(
+        {
+          error: "github_not_configured",
+          message:
+            "GitHub org share needs WorkOS GitHub OAuth (return tokens + read:org) or GITHUB_CLIENT_ID/SECRET on this instance.",
+        },
+        503,
+      );
+    }
+    const orgRaw = body.github_org ?? art.githubOrg ?? "";
+    const org = normalizeGithubSlug(String(orgRaw));
+    if (!org) return c.json({ error: "github_org_required" }, 400);
+    let team: string | null = null;
+    if (body.github_team !== undefined && body.github_team !== null && body.github_team !== "") {
+      team = normalizeGithubSlug(String(body.github_team));
+      if (!team) return c.json({ error: "invalid_github_team" }, 400);
+    } else if (body.github_team === null || body.github_team === "") {
+      team = null;
+    } else if (art.githubTeam) {
+      team = art.githubTeam;
+    }
+    await setGithubTeamShare(db, id, { org, team });
+  } else if (effectiveMode && SHARE_MODES.includes(effectiveMode)) {
+    await setShareMode(db, id, effectiveMode);
+  }
+
   if (Array.isArray(body.emails)) {
     const emails = body.emails
       .map((e) => String(e).trim().toLowerCase())
       .filter((e) => e.includes("@") && e.length <= 254);
     await addToAllowlist(db, id, emails);
   }
+
   const updated = await getArtifact(db, id);
-  return c.json({ id, share_mode: updated?.shareMode, url: `${c.env.APP_HOST}/a/${id}` });
+  return c.json({
+    id,
+    share_mode: updated?.shareMode,
+    github_org: updated?.githubOrg ?? null,
+    github_team: updated?.githubTeam ?? null,
+    url: `${c.env.APP_HOST}/a/${id}`,
+  });
 });
 
 publishRoutes.post("/api/publish", async (c) => {
@@ -102,6 +153,27 @@ publishRoutes.post("/api/publish", async (c) => {
     ? (q.share as ShareMode)
     : "private";
 
+  let githubOrg: string | null = null;
+  let githubTeam: string | null = null;
+  if (shareMode === "github_team") {
+    if (!isGithubTeamShareAvailable(c.env)) {
+      return c.json(
+        {
+          error: "github_not_configured",
+          message:
+            "GitHub org share needs WorkOS GitHub OAuth (return tokens + read:org) or GITHUB_CLIENT_ID/SECRET on this instance.",
+        },
+        503,
+      );
+    }
+    githubOrg = normalizeGithubSlug(q.github_org ?? "");
+    if (!githubOrg) return c.json({ error: "github_org_required" }, 400);
+    if (q.github_team) {
+      githubTeam = normalizeGithubSlug(q.github_team);
+      if (!githubTeam) return c.json({ error: "invalid_github_team" }, 400);
+    }
+  }
+
   let id = q.id;
   const isNew = !id;
 
@@ -121,7 +193,16 @@ publishRoutes.post("/api/publish", async (c) => {
   }
 
   if (isNew) {
-    await createArtifact(db, { id, ownerEmail: owner, title, emoji, shareMode });
+    await createArtifact(db, {
+      id,
+      ownerEmail: owner,
+      title,
+      emoji,
+      shareMode: shareMode === "github_team" ? "private" : shareMode,
+    });
+    if (shareMode === "github_team" && githubOrg) {
+      await setGithubTeamShare(db, id, { org: githubOrg, team: githubTeam });
+    }
   }
 
   const versionId = randomId();
@@ -138,6 +219,13 @@ publishRoutes.post("/api/publish", async (c) => {
     title: isNew ? undefined : title,
     emoji: isNew ? undefined : emoji,
   });
+
+  // On update, apply share settings if provided.
+  if (!isNew && shareMode === "github_team" && githubOrg) {
+    await setGithubTeamShare(db, id, { org: githubOrg, team: githubTeam });
+  } else if (!isNew && q.share && SHARE_MODES.includes(shareMode) && shareMode !== "github_team") {
+    await setShareMode(db, id, shareMode);
+  }
 
   return c.json({
     id,

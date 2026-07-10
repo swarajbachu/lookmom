@@ -91,7 +91,15 @@ export interface PublishResult {
 
 export async function apiPublish(
   creds: Credentials,
-  opts: { file: string; id?: string; title?: string; emoji?: string; share?: string },
+  opts: {
+    file: string;
+    id?: string;
+    title?: string;
+    emoji?: string;
+    share?: string;
+    githubOrg?: string;
+    githubTeam?: string;
+  },
 ): Promise<PublishResult> {
   const html = await readFile(opts.file);
   const qs = new URLSearchParams();
@@ -99,6 +107,8 @@ export async function apiPublish(
   if (opts.title) qs.set("title", opts.title);
   if (opts.emoji) qs.set("emoji", opts.emoji);
   if (opts.share) qs.set("share", opts.share);
+  if (opts.githubOrg) qs.set("github_org", opts.githubOrg);
+  if (opts.githubTeam) qs.set("github_team", opts.githubTeam);
 
   const res = await fetch(`${creds.apiBase}/api/publish?${qs.toString()}`, {
     method: "POST",
@@ -117,8 +127,19 @@ export async function apiPublish(
 export async function apiShare(
   creds: Credentials,
   id: string,
-  body: { mode?: string; emails?: string[] },
-): Promise<{ id: string; share_mode: string; url: string }> {
+  body: {
+    mode?: string;
+    emails?: string[];
+    github_org?: string;
+    github_team?: string | null;
+  },
+): Promise<{
+  id: string;
+  share_mode: string;
+  url: string;
+  github_org?: string | null;
+  github_team?: string | null;
+}> {
   const res = await fetch(`${creds.apiBase}/api/artifacts/${id}/share`, {
     method: "POST",
     headers: { authorization: `Bearer ${creds.accessToken}`, "content-type": "application/json" },
@@ -129,8 +150,17 @@ export async function apiShare(
     throw new AuthExpired();
   }
   const data = (await res.json().catch(() => ({}))) as Record<string, any>;
-  if (!res.ok) throw new Error(`Share failed (${res.status}): ${data.error ?? "unknown"}`);
-  return data as { id: string; share_mode: string; url: string };
+  if (!res.ok) {
+    const detail = data.message ? `: ${data.message}` : "";
+    throw new Error(`Share failed (${res.status}): ${data.error ?? "unknown"}${detail}`);
+  }
+  return data as {
+    id: string;
+    share_mode: string;
+    url: string;
+    github_org?: string | null;
+    github_team?: string | null;
+  };
 }
 
 export async function apiList(creds: Credentials): Promise<any[]> {

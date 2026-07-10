@@ -18,6 +18,8 @@ function key(secret: string): Uint8Array {
 export interface ViewerClaims {
   email: string;
   name?: string;
+  /** GitHub username when the viewer linked/signed in via GitHub. */
+  githubLogin?: string;
 }
 
 /** Mint a viewer session JWT (goes in an HttpOnly cookie). */
@@ -26,7 +28,10 @@ export async function signViewerSession(
   claims: ViewerClaims,
   ttlSeconds = 7 * 24 * 60 * 60,
 ): Promise<string> {
-  return new SignJWT({ email: claims.email, name: claims.name })
+  const payload: Record<string, string> = { email: claims.email };
+  if (claims.name) payload.name = claims.name;
+  if (claims.githubLogin) payload.githubLogin = claims.githubLogin;
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer(ISSUER)
     .setAudience(VIEWER_AUD)
@@ -45,7 +50,12 @@ export async function verifyViewerSession(
       audience: VIEWER_AUD,
     });
     if (typeof payload.email !== "string") return null;
-    return { email: payload.email, name: payload.name as string | undefined };
+    return {
+      email: payload.email,
+      name: typeof payload.name === "string" ? payload.name : undefined,
+      githubLogin:
+        typeof payload.githubLogin === "string" ? payload.githubLogin : undefined,
+    };
   } catch {
     return null;
   }

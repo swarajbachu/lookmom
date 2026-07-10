@@ -64,11 +64,15 @@ ${c.bold("publish options")}
   --update <id|url>   Republish a new version to an existing artifact
   --title <text>      Title (tab name + gallery)
   --emoji <char>      Tab icon
-  --share <mode>      private | allowlist | public   (default: private)
+  --share <mode>      private | allowlist | public | github_team   (default: private)
+  --github-org <org>  GitHub org slug (required with --share github_team)
+  --github-team <t>   Optional GitHub team slug within the org
 
 ${c.bold("share options")}
   --email <addr>      Add an allowed viewer (repeatable)
-  --mode <mode>       private | allowlist | public
+  --mode <mode>       private | allowlist | public | github_team
+  --github-org <org>  GitHub org (implies --mode github_team)
+  --github-team <t>   Optional GitHub team slug
 
 ${c.bold("global")}
   --api <url>         Worker base URL (default: $LOOKMOM_API_URL or http://localhost:8787)
@@ -111,12 +115,21 @@ async function main() {
     case "publish": {
       const file = flags._[1];
       if (!file) die("Usage: lookmom publish <file> [--update <id|url>] [--title ..] [--share ..]");
+      const githubOrg = asStr(flags["github-org"]);
+      const githubTeam = asStr(flags["github-team"]);
+      let share = asStr(flags.share);
+      if (!share && githubOrg) share = "github_team";
+      if (share === "github_team" && !githubOrg) {
+        die("github_team share requires --github-org <org>");
+      }
       const opts = {
         file,
         id: flags.update ? parseArtifactRef(asStr(flags.update)!) : undefined,
         title: asStr(flags.title),
         emoji: asStr(flags.emoji),
-        share: asStr(flags.share),
+        share,
+        githubOrg,
+        githubTeam,
       };
       let creds = await ensureAuth(apiBase);
       let res;
@@ -134,13 +147,45 @@ async function main() {
     }
     case "share": {
       const ref = flags._[1];
-      if (!ref) die("Usage: lookmom share <id|url> [--email a@b]... [--mode allowlist]");
+      if (!ref) {
+        die(
+          "Usage: lookmom share <id|url> [--email a@b]... [--mode allowlist|github_team] [--github-org org] [--github-team team]",
+        );
+      }
       const id = parseArtifactRef(ref);
       const emails = asArray(flags.email);
-      const mode = asStr(flags.mode) ?? (emails.length ? "allowlist" : undefined);
+      const githubOrg = asStr(flags["github-org"]);
+      const githubTeam = asStr(flags["github-team"]);
+      let mode = asStr(flags.mode);
+      if (!mode && emails.length) mode = "allowlist";
+      if (!mode && githubOrg) mode = "github_team";
+      if (mode === "github_team" && !githubOrg) {
+        die("github_team mode requires --github-org <org>");
+      }
+      if (!mode && !emails.length && !githubOrg) {
+        die("Provide --mode, --email, and/or --github-org");
+      }
       const creds = await ensureAuth(apiBase);
-      const res = await apiShare(creds, id, { mode, emails });
+      const res = await apiShare(creds, id, {
+        mode,
+        emails,
+        github_org: githubOrg,
+        github_team: githubTeam,
+      });
       ok(`Updated ${c.bold(res.url)} → ${c.cyan(res.share_mode)}`);
+      if (res.github_org) {
+        info(
+          c.dim(
+            `github: ${res.github_org}${res.github_team ? "/" + res.github_team : " (whole org)"}`,
+          ),
+        );
+        const connectUrl = `${apiBase.replace(/\/$/, "")}/connect/github`;
+        info(
+          c.dim(
+            `Owners: open Share or ${connectUrl} to Connect GitHub. Viewers sign in with GitHub.`,
+          ),
+        );
+      }
       if (emails.length) info(c.dim(`allowed: ${emails.join(", ")}`));
       break;
     }
@@ -152,7 +197,13 @@ async function main() {
         break;
       }
       for (const a of items) {
-        info(`${a.emoji}  ${c.bold(a.title)}  ${c.dim(a.share_mode + " · v" + a.version)}`);
+        const gh =
+          a.share_mode === "github_team" && a.github_org
+            ? ` · ${a.github_org}${a.github_team ? "/" + a.github_team : ""}`
+            : "";
+        info(
+          `${a.emoji}  ${c.bold(a.title)}  ${c.dim(a.share_mode + gh + " · v" + a.version)}`,
+        );
         info(`    ${c.cyan(a.url)}`);
       }
       break;
