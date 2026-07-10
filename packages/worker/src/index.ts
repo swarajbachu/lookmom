@@ -10,6 +10,7 @@ import { shareRoutes } from "./routes/share";
 import { orgRoutes } from "./routes/orgs";
 import { githubApiRoutes } from "./routes/github-api";
 import { FAVICON_PNG_BASE64, LOGO_PNG_BASE64, LOGO_PNG_MIME } from "./brand";
+import { landingRoutes } from "./routes/landing";
 
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 
@@ -38,11 +39,10 @@ app.get("/favicon.ico", (c) => {
 });
 app.get("/favicon.png", (c) => c.redirect("/logo.png", 302));
 
-// Health + root.
-app.get("/", (c) => c.redirect("/gallery"));
 app.get("/healthz", (c) => c.json({ ok: true }));
 
 // Route groups.
+app.route("/", landingRoutes); // /, /SKILL.md
 app.route("/", authRoutes); // /auth/*, /connect/github
 app.route("/", agentRoutes); // /auth.md, /.well-known/..., /agent/*, /oauth2/*
 app.route("/", publishRoutes); // /api/publish
