@@ -8,11 +8,34 @@ import { publishRoutes } from "./routes/publish";
 import { authRoutes } from "./routes/auth";
 import { shareRoutes } from "./routes/share";
 import { githubApiRoutes } from "./routes/github-api";
+import { FAVICON_PNG_BASE64, LOGO_PNG_BASE64, LOGO_PNG_MIME } from "./brand";
 
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 
 // Populate c.var.viewer from the session cookie on every request (non-blocking).
 app.use("*", viewerSession);
+
+
+// Brand assets (inlined PNGs).
+app.get("/logo.png", (c) => {
+  const bytes = Uint8Array.from(atob(LOGO_PNG_BASE64), (ch) => ch.charCodeAt(0));
+  return new Response(bytes, {
+    headers: {
+      "content-type": LOGO_PNG_MIME,
+      "cache-control": "public, max-age=86400",
+    },
+  });
+});
+app.get("/favicon.ico", (c) => {
+  const bytes = Uint8Array.from(atob(FAVICON_PNG_BASE64), (ch) => ch.charCodeAt(0));
+  return new Response(bytes, {
+    headers: {
+      "content-type": LOGO_PNG_MIME,
+      "cache-control": "public, max-age=86400",
+    },
+  });
+});
+app.get("/favicon.png", (c) => c.redirect("/logo.png", 302));
 
 // Health + root.
 app.get("/", (c) => c.redirect("/gallery"));

@@ -141,13 +141,26 @@ viewRoutes.get("/a/:id", async (c) => {
   // Issue a short-lived grant and hand off to the cookieless sandbox host.
   const grant = await signGrant(c.env.JWT_SIGNING_SECRET, id, art.currentVersion);
   const rawUrl = `${c.env.ARTIFACT_SANDBOX_HOST}/raw/${id}?grant=${encodeURIComponent(grant)}`;
+  const isOwner = !!viewer && viewer.email === art.ownerEmail;
   return c.html(
     <ArtifactFrame
+      id={id}
       title={art.title}
       emoji={art.emoji}
       rawUrl={rawUrl}
-      canShare={!!viewer && viewer.email === art.ownerEmail}
+      canShare={isOwner}
       shareUrl={`${c.env.APP_HOST}/share/${id}`}
+      viewUrl={`${c.env.APP_HOST}/a/${id}`}
+      shareMode={art.shareMode}
+      githubOrg={art.githubOrg}
+      githubTeam={art.githubTeam}
+      githubConnected={!!viewer?.githubLogin}
+      githubAvailable={isGithubTeamShareAvailable(c.env)}
+      connectUrl={
+        isOwner
+          ? `/connect/github?return_to=${encodeURIComponent(`/a/${id}?shared=1`)}`
+          : undefined
+      }
     />,
   );
 });

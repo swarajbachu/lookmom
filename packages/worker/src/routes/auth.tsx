@@ -297,10 +297,24 @@ authRoutes.get("/auth/login", async (c) => {
   }
 
   if (!isWorkosConfigured(c.env)) {
+    // ---------------------------------------------------------------------------
+    // LOCAL / no WorkOS: skip the outdated email form so polished pages (gallery,
+    // viewer, share) are reachable without a barebones intermediate screen.
+    // Set SKIP_LOCAL_DEV_LOGIN_FORM to false (and uncomment the form below)
+    // when you want the manual "enter any email" page again.
+    // ---------------------------------------------------------------------------
+    const SKIP_LOCAL_DEV_LOGIN_FORM = true;
+    if (SKIP_LOCAL_DEV_LOGIN_FORM) {
+      await startSession(c, "you@example.com");
+      return c.redirect(returnTo);
+    }
+
+    /* LOCAL DEV LOGIN FORM — uncomment when SKIP_LOCAL_DEV_LOGIN_FORM is false
     return c.html(
       <Layout title="Dev sign in">
         <div class="wrap">
           <div class="card">
+            <p class="kicker">Local</p>
             <h1>Dev sign in</h1>
             <p>WorkOS isn’t configured. Enter any email to simulate a session.</p>
             <form method="post" action="/auth/dev-login">
@@ -317,20 +331,13 @@ authRoutes.get("/auth/login", async (c) => {
                 <button class="btn" type="submit">
                   Continue
                 </button>
-                {isGithubConfigured(c.env) ? (
-                  <a
-                    class="btn secondary"
-                    href={`/auth/github?return_to=${encodeURIComponent(returnTo)}&purpose=viewer`}
-                  >
-                    Sign in with GitHub
-                  </a>
-                ) : null}
               </div>
             </form>
           </div>
         </div>
       </Layout>,
     );
+    */
   }
 
   const state = randomId();
