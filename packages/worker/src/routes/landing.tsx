@@ -16,53 +16,56 @@ landingRoutes.get("/SKILL.md", (c) => {
   const md = `---
 name: lookmom
 description: >
-  Publish self-contained HTML to a private, shareable URL with the lookmom CLI.
-  Use when the user wants an artifact online, team/org share, or to install lookmom.
+  Claude Artifacts alternative: publish private HTML for any agent, free and open source,
+  with GitHub org/team share (no enterprise plan). Install skill or CLI, then publish/share.
 ---
 
-# lookmom
+# lookmom — Claude Artifacts for every agent
 
-Publish a self-contained HTML page to a private URL (default \`${host}/a/<id>\`).
+Free, open-source alternative to Claude Artifacts. Works with **any agent** (Claude, Cursor, Codex, …) plus a CLI. Share with a GitHub org or team **without** Team/Enterprise. Self-host or use \`${host}\`.
 
-You do **not** need to sign into the website first. Install a skill or the CLI, then publish.
+Default artifact URL: \`${host}/a/<id>\`.
 
-## Install (pick one)
+## Install
 
-### Skill (recommended for agents)
+### Skill
 
 \`\`\`bash
 npx skills add swarajbachu/lookmom
-# both skills (CLI + design craft):
-npx skills add swarajbachu/lookmom --skill '*' -y
 \`\`\`
 
-### CLI
+### npm (CLI)
 
 \`\`\`bash
 npm install -g lookmom
-# or: bun add -g lookmom
-lookmom login
-lookmom publish ./page.html --title "Demo"
 \`\`\`
 
-### This file
+Then: \`lookmom login\` · \`lookmom publish ./page.html --title "Demo"\`
 
-Tell the user/agent: read \`${host}/SKILL.md\` (or the full skills in the repo).
+### Prompt (paste to an agent)
 
-Full skill docs:
+\`\`\`
+Publish this as a lookmom artifact.
+
+1. Read ${host}/SKILL.md
+2. Install the CLI if needed, then lookmom login + lookmom publish
+3. Share with my GitHub org if I ask — no enterprise plan required
+\`\`\`
+
+Full skills in the repo:
 - https://github.com/swarajbachu/lookmom/blob/main/skills/lookmom/SKILL.md
-- Design craft: https://github.com/swarajbachu/lookmom/blob/main/skills/lookmom-design/SKILL.md
+- Design: https://github.com/swarajbachu/lookmom/blob/main/skills/lookmom-design/SKILL.md
 
 ## Quick publish
 
 \`\`\`bash
-lookmom preview ./my-artifact   # local CSP sandbox
+lookmom preview ./my-artifact
 lookmom publish ./my-artifact --title "Title" --emoji 📊
 lookmom share <id> --mode public
 lookmom share <id> --github-org AcmeOrg
 \`\`\`
 
-Multi-file folders need \`index.html\`; the CLI packs CSS/JS/images for a strict CSP (no external network in artifacts).
+Multi-file folders need \`index.html\`; CLI packs CSS/JS/images for a strict CSP (no external network in artifacts).
 
 ## Share modes
 
@@ -75,7 +78,7 @@ Multi-file folders need \`index.html\`; the CLI packs CSS/JS/images for a strict
 
 Default API: \`${host}\`. Override with \`--api <url>\` or \`$LOOKMOM_API_URL\`.
 
-Site: ${host} · Repo: https://github.com/swarajbachu/lookmom
+Site: ${host} · Source: https://github.com/swarajbachu/lookmom (MIT)
 `;
   return c.text(md, 200, {
     "content-type": "text/markdown; charset=utf-8",

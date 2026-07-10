@@ -717,6 +717,36 @@ const STYLE = `${HAND_FONT_FACE}
     font-size: 1rem;
   }
   .land-links a { color: var(--ink); }
+  .land-points {
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .land-points li {
+    display: grid;
+    gap: 2px;
+    padding: 12px 14px;
+    border: 2px solid var(--ink);
+    border-radius: 18px 28px 16px 24px / 24px 16px 28px 18px;
+    background: var(--bg-elevated);
+    box-shadow: 2px 2px 0 rgba(31, 48, 24, 0.1);
+  }
+  .land-points li:nth-child(even) {
+    border-radius: 28px 16px 24px 18px / 16px 28px 18px 24px;
+    transform: rotate(0.2deg);
+  }
+  .land-points strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--ink);
+  }
+  .land-points span {
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.35;
+  }
 
   dialog.modal {
     border: 2.5px solid var(--ink);
@@ -932,119 +962,96 @@ const LANDING_TABS_SCRIPT = `
 
 /** Public marketing home — install without logging into the site. */
 export const Landing: FC<{ email?: string; host: string }> = ({ email, host }) => {
+  const agentPrompt = `Publish this as a lookmom artifact.
+
+1. Read ${host}/SKILL.md
+2. Install the CLI if needed, then lookmom login + lookmom publish
+3. Share with my GitHub org if I ask — no enterprise plan required`;
+
   const skillCmd = "npx skills add swarajbachu/lookmom";
-  const skillBoth = "npx skills add swarajbachu/lookmom --skill '*' -y";
-  const cliInstall = "npm install -g lookmom\n# or: bun add -g lookmom";
-  const cliQuick = "lookmom login\nlookmom publish ./my-page.html --title \"Demo\"";
-  const skillUrl = `${host}/SKILL.md`;
-  const skillGithub = "https://github.com/swarajbachu/lookmom/blob/main/skills/lookmom/SKILL.md";
+  const npmCmd = "npm install -g lookmom";
 
   return (
-    <Layout title="lookmom — private HTML artifacts">
+    <Layout title="lookmom — Claude Artifacts for every agent">
       <AppNav email={email} home />
       <main class="shell-main">
         <div class="land-hero">
-          <span class="land-pill">no account needed to start</span>
-          <h1>Look mom, I built a website.</h1>
+          <span class="land-pill">free · open source · no enterprise tax</span>
+          <h1>Claude Artifacts — for every agent.</h1>
           <p class="lede">
-            Publish a self-contained HTML page to a private URL. Share with people, a GitHub
-            org, or anyone with the link. Your agent can do the whole thing.
+            Private HTML pages your AI publishes in one step. Share with your org or team without
+            a Team/Enterprise plan. Works with Claude, Cursor, Codex, and anything that can run a skill or CLI.
           </p>
         </div>
 
         <div class="land-card" data-landing-tabs>
-          <p class="kicker">get it in 10 seconds</p>
+          <p class="kicker">start here</p>
           <h2 style="margin-bottom:14px;font-size:1.6rem">Pick one</h2>
 
-          <div class="tabs" role="tablist" aria-label="How to install">
-            <button class="tab" type="button" role="tab" id="tab-skill" data-tab="skill" aria-controls="panel-skill" aria-selected="true" tabindex={0}>
+          <div class="tabs" role="tablist" aria-label="How to start">
+            <button class="tab" type="button" role="tab" id="tab-agent" data-tab="agent" aria-controls="panel-agent" aria-selected="true" tabindex={0}>
+              Agent
+            </button>
+            <button class="tab" type="button" role="tab" id="tab-skill" data-tab="skill" aria-controls="panel-skill" aria-selected="false" tabindex={-1}>
               Skill
             </button>
-            <button class="tab" type="button" role="tab" id="tab-cli" data-tab="cli" aria-controls="panel-cli" aria-selected="false" tabindex={-1}>
-              CLI
-            </button>
-            <button class="tab" type="button" role="tab" id="tab-md" data-tab="md" aria-controls="panel-md" aria-selected="false" tabindex={-1}>
-              SKILL.md
+            <button class="tab" type="button" role="tab" id="tab-npm" data-tab="npm" aria-controls="panel-npm" aria-selected="false" tabindex={-1}>
+              npm
             </button>
           </div>
 
-          <div class="tab-panel" role="tabpanel" id="panel-skill" data-panel="skill" aria-labelledby="tab-skill">
-            <h2>Give your agent the skill</h2>
-            <p>
-              Works with Claude Code, Cursor, Codex, and friends. No need to sign into this site first —
-              install the skill, then ask your agent.
-            </p>
+          <div class="tab-panel" role="tabpanel" id="panel-agent" data-panel="agent" aria-labelledby="tab-agent">
+            <h2>Paste this to your agent</h2>
+            <p>No install on this site. Copy the prompt, drop it in Claude / Cursor / Codex / whatever you use.</p>
+            <div class="code-block">
+              <button class="copy-cmd" type="button" data-copy={agentPrompt}>
+                Copy
+              </button>
+              <pre>{agentPrompt}</pre>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-skill" data-panel="skill" aria-labelledby="tab-skill" hidden>
+            <h2>Install the skill</h2>
+            <p>One command. Your agent learns how to design, pack, publish, and share.</p>
             <div class="code-block">
               <button class="copy-cmd" type="button" data-copy={skillCmd}>
                 Copy
               </button>
               <pre>{skillCmd}</pre>
             </div>
-            <p style="margin-bottom:8px;color:var(--muted)">Both skills (publish + design craft):</p>
-            <div class="code-block">
-              <button class="copy-cmd" type="button" data-copy={skillBoth}>
-                Copy
-              </button>
-              <pre>{skillBoth}</pre>
-            </div>
-            <div class="land-ask">
-              <strong>Then say</strong>
-              <p>“Publish this HTML with lookmom” or “Draw how auth works and put it online.”</p>
-            </div>
           </div>
 
-          <div class="tab-panel" role="tabpanel" id="panel-cli" data-panel="cli" aria-labelledby="tab-cli" hidden>
+          <div class="tab-panel" role="tabpanel" id="panel-npm" data-panel="npm" aria-labelledby="tab-npm" hidden>
             <h2>Install the CLI</h2>
-            <p>
-              Same idea as other tools — put <span class="mono">lookmom</span> on your machine, then publish from a terminal (or let an agent run the commands).
-            </p>
+            <p>For the terminal only — then <span class="mono">lookmom login</span> and <span class="mono">lookmom publish</span>.</p>
             <div class="code-block">
-              <button class="copy-cmd" type="button" data-copy={cliInstall}>
+              <button class="copy-cmd" type="button" data-copy={npmCmd}>
                 Copy
               </button>
-              <pre>{cliInstall}</pre>
-            </div>
-            <p style="margin-bottom:8px;color:var(--muted)">First publish:</p>
-            <div class="code-block">
-              <button class="copy-cmd" type="button" data-copy={cliQuick}>
-                Copy
-              </button>
-              <pre>{cliQuick}</pre>
-            </div>
-            <div class="land-ask">
-              <strong>Login happens in the CLI</strong>
-              <p>
-                <span class="mono">lookmom login</span> opens a browser once. You don’t need an account on this page to try the skill or CLI install.
-              </p>
-            </div>
-          </div>
-
-          <div class="tab-panel" role="tabpanel" id="panel-md" data-panel="md" aria-labelledby="tab-md" hidden>
-            <h2>Point the agent at SKILL.md</h2>
-            <p>
-              Like “add Clerk: clerk.com/SKILL.md” — paste the URL and your agent loads the instructions.
-            </p>
-            <div class="code-block">
-              <button class="copy-cmd" type="button" data-copy={skillUrl}>
-                Copy
-              </button>
-              <pre>{skillUrl}</pre>
-            </div>
-            <p style="margin-bottom:8px;color:var(--muted)">Or from GitHub:</p>
-            <div class="code-block">
-              <button class="copy-cmd" type="button" data-copy={skillGithub}>
-                Copy
-              </button>
-              <pre>{skillGithub}</pre>
-            </div>
-            <div class="land-ask">
-              <strong>Then say</strong>
-              <p>
-                “Read {host.replace(/^https?:\/\//, "")}/SKILL.md and publish this page with lookmom.”
-              </p>
+              <pre>{npmCmd}</pre>
             </div>
           </div>
         </div>
+
+        <ul class="land-points">
+          <li>
+            <strong>Artifacts without the lock-in</strong>
+            <span>Same idea as Claude Artifacts — private, shareable HTML — not stuck behind Enterprise.</span>
+          </li>
+          <li>
+            <strong>Every agent</strong>
+            <span>Skill + CLI. Claude, Cursor, Codex, or you in a shell.</span>
+          </li>
+          <li>
+            <strong>Org &amp; team share that just works</strong>
+            <span>GitHub org or team access without buying a plan for your whole company.</span>
+          </li>
+          <li>
+            <strong>Free &amp; open source</strong>
+            <span>MIT. Self-host on Cloudflare’s free tier, or use the public instance.</span>
+          </li>
+        </ul>
 
         <div class="land-foot">
           {email ? (
@@ -1062,8 +1069,8 @@ export const Landing: FC<{ email?: string; host: string }> = ({ email, host }) =
         </div>
         <div class="land-links">
           <a href="/SKILL.md">/SKILL.md</a>
-          <a href="https://github.com/swarajbachu/lookmom/tree/main/skills">skills/</a>
           <a href="https://www.npmjs.com/package/lookmom">npm lookmom</a>
+          <a href="https://github.com/swarajbachu/lookmom">source</a>
         </div>
       </main>
       <script dangerouslySetInnerHTML={{ __html: LANDING_TABS_SCRIPT }} />
