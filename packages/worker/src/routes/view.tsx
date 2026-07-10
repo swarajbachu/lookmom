@@ -8,13 +8,23 @@
  */
 import { Hono } from "hono";
 import type { AppContext, Env, Vars } from "../types";
-import { getArtifact, getVersion, isAllowed, getDb } from "../db";
+import {
+  getArtifact,
+  getVersion,
+  isAllowed,
+  getDb,
+  getOwnerGithub,
+  isOnGithubShareRoster,
+  isOrgMember,
+  getGithubOrgLink,
+} from "../db";
 import { artifactHeaders } from "../csp";
 import { signGrant, verifyGrant } from "../grants";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
 import { getGithubTokenCookie } from "../auth/session";
 import { isGithubTeamShareAvailable } from "../auth/github";
 import { isGithubTeamMember } from "../github/membership";
+import { listUserOrgs } from "../github/orgs";
 import {
   AccessDenied,
   ArtifactFrame,
@@ -58,7 +68,12 @@ viewRoutes.get("/a/:id", async (c) => {
           githubLoginUrl={
             art.shareMode === "github_team" ? githubLoginUrl : undefined
           }
-          teamShare={art.shareMode === "github_team"}
+          teamShare={false}
+          message={
+            art.shareMode === "github_team"
+              ? "Shared with a GitHub org. Try your work email first (if synced), or sign in with GitHub."
+              : undefined
+          }
         />,
       );
     }
@@ -79,46 +94,79 @@ viewRoutes.get("/a/:id", async (c) => {
       if (!isGithubTeamShareAvailable(c.env)) {
         return c.html(<GithubNotConfigured />);
       }
-      if (!viewer.githubLogin) {
-        return c.html(
-          <LoginPrompt
-            title={art.title}
-            loginUrl={loginUrl}
-            githubLoginUrl={githubLoginUrl}
-            teamShare
-            message="This artifact is shared with a GitHub organization. Sign in with GitHub so we can check membership."
-          />,
-        );
-      }
 
-      const result = await isGithubTeamMember(db, {
-        githubLogin: viewer.githubLogin,
-        org: art.githubOrg,
-        team: art.githubTeam,
-        accessToken: getGithubTokenCookie(c),
-      });
+      // Org-first access: org roster → artifact roster → allowlist → live check (linker token)
+      const orgKey = (art.orgSlug || art.githubOrg || "").toLowerCase();
 
-      if (result.reason === "needs_github") {
-        return c.html(
-          <LoginPrompt
-            title={art.title}
-            loginUrl={loginUrl}
-            githubLoginUrl={githubLoginUrl}
-            teamShare
-            message="Your GitHub session expired. Sign in with GitHub again to refresh membership."
-          />,
-        );
+      if (await isAllowed(db, id, viewer.email)) {
+        allowed = true;
+      } else if (
+        orgKey &&
+        (await isOrgMember(db, orgKey, {
+          email: viewer.email,
+          githubLogin: viewer.githubLogin,
+        }))
+      ) {
+        allowed = true;
+      } else if (
+        await isOnGithubShareRoster(db, id, {
+          email: viewer.email,
+          githubLogin: viewer.githubLogin,
+        })
+      ) {
+        allowed = true;
+      } else {
+        // Live membership via org linker token (preferred) or owner github / viewer cookie
+        const orgLink = orgKey ? await getGithubOrgLink(db, orgKey) : null;
+        const ownerLink = await getOwnerGithub(db, art.ownerEmail);
+        const token =
+          orgLink?.accessToken ??
+          ownerLink?.accessToken ??
+          getGithubTokenCookie(c) ??
+          undefined;
+
+        if (!viewer.githubLogin) {
+          return c.html(
+            <LoginPrompt
+              title={art.title}
+              loginUrl={loginUrl}
+              githubLoginUrl={githubLoginUrl}
+              teamShare={false}
+              message="Shared with a GitHub org. Sign in with work email if synced, or connect GitHub identity (no org grant needed)."
+            />,
+          );
+        }
+
+        if (!token) {
+          return c.html(
+            <LoginPrompt
+              title={art.title}
+              loginUrl={loginUrl}
+              githubLoginUrl={githubLoginUrl}
+              teamShare
+              message="Connect GitHub identity, or ask an org linker to re-sync members."
+            />,
+          );
+        }
+
+        const result = await isGithubTeamMember(db, {
+          githubLogin: viewer.githubLogin,
+          org: art.githubOrg || orgKey,
+          team: art.githubTeam,
+          accessToken: token,
+        });
+
+        if (result.reason === "error") {
+          return c.html(
+            <AccessDenied
+              email={viewer.email}
+              switchUrl={githubLoginUrl}
+              message="We couldn’t verify organization membership right now. Try again later."
+            />,
+          );
+        }
+        allowed = result.allowed;
       }
-      if (result.reason === "error") {
-        return c.html(
-          <AccessDenied
-            email={viewer.email}
-            switchUrl={githubLoginUrl}
-            message="We couldn’t verify your GitHub organization membership right now. Try again, or sign in with a different GitHub account."
-          />,
-        );
-      }
-      allowed = result.allowed;
     }
   }
 
@@ -142,6 +190,23 @@ viewRoutes.get("/a/:id", async (c) => {
   const grant = await signGrant(c.env.JWT_SIGNING_SECRET, id, art.currentVersion);
   const rawUrl = `${c.env.ARTIFACT_SANDBOX_HOST}/raw/${id}?grant=${encodeURIComponent(grant)}`;
   const isOwner = !!viewer && viewer.email === art.ownerEmail;
+  let githubOrgs: Array<{ login: string; description: string }> = [];
+  let githubOrgsError: string | undefined;
+  let ownerGhLogin: string | undefined;
+  let ownerGhConnected = false;
+  if (isOwner && viewer) {
+    const link = await getOwnerGithub(db, viewer.email);
+    ownerGhConnected = !!link || !!viewer.githubLogin;
+    ownerGhLogin = link?.githubLogin ?? viewer.githubLogin;
+    if (link) {
+      try {
+        githubOrgs = await listUserOrgs(link.accessToken);
+      } catch (e) {
+        console.error("viewer share list orgs:", e);
+        githubOrgsError = "Could not load organizations. Try reconnecting GitHub.";
+      }
+    }
+  }
   return c.html(
     <ArtifactFrame
       id={id}
@@ -154,13 +219,16 @@ viewRoutes.get("/a/:id", async (c) => {
       shareMode={art.shareMode}
       githubOrg={art.githubOrg}
       githubTeam={art.githubTeam}
-      githubConnected={!!viewer?.githubLogin}
+      githubConnected={ownerGhConnected}
       githubAvailable={isGithubTeamShareAvailable(c.env)}
       connectUrl={
         isOwner
           ? `/connect/github?return_to=${encodeURIComponent(`/a/${id}?shared=1`)}`
           : undefined
       }
+      githubOrgs={githubOrgs}
+      githubOrgsError={githubOrgsError}
+      githubLogin={ownerGhLogin}
     />,
   );
 });

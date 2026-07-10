@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lookmom · Org support plan</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="diagram.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <p class="kicker">lookmom · product plan</p>
+      <h1>GitHub Orgs, first-class</h1>
+      <p class="lede">
+        Connect an org once. Members only prove who they are —
+        boxes, arrows, no walls of text.
+      </p>
+    </header>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Today’s pain</h2>
+        <span class="chip">50 people × SAML</span>
+      </div>
+      <div class="diagram-host" id="d-pain" role="img" aria-label="Every member must OAuth grant org access"></div>
+      <p class="caption">Each viewer hits GitHub OAuth / SAML. Admins drown in access requests.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Target model</h2>
+        <span class="chip">one linker</span>
+      </div>
+      <div class="diagram-host tall" id="d-target" role="img" aria-label="One linker connects org; members use identity only"></div>
+      <p class="caption">Linker grants <code>read:org</code> once. Everyone else only connects identity (<code>@login</code>).</p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Two connect levels</h2>
+        <span class="chip">scopes</span>
+      </div>
+      <div class="diagram-host" id="d-scopes" role="img" aria-label="Identity connect vs org link scopes"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Happy path</h2>
+        <span class="chip">sequence</span>
+      </div>
+      <div class="diagram-host tall" id="d-flow" role="img" aria-label="Sequence: link org, publish, member views"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>How access is decided</h2>
+        <span class="chip">gate</span>
+      </div>
+      <div class="diagram-host tall" id="d-gate" role="img" aria-label="Decision tree for viewing an org artifact"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Screens</h2>
+        <span class="chip">IA</span>
+      </div>
+      <div class="diagram-host" id="d-screens" role="img" aria-label="App navigation: Gallery, Orgs, org home"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Ship order</h2>
+        <span class="chip">phases</span>
+      </div>
+      <div class="diagram-host" id="d-phases" role="img" aria-label="Four delivery phases"></div>
+    </section>
+
+    <footer class="foot">
+      <span>Also: <span class="mono">docs/orgs-plan.md</span></span>
+      <span class="mono">examples/orgs-plan</span>
+    </footer>
+  </div>
+
+  <script src="scripts/diagram.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

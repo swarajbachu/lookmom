@@ -462,6 +462,27 @@ const STYLE = `${HAND_FONT_FACE}
     box-shadow: 2px 2px 0 rgba(31, 48, 24, 0.08);
   }
   textarea.text { min-height: 88px; resize: vertical; line-height: 1.4; }
+  select.text {
+    font-family: var(--font);
+    font-size: 1.1rem;
+    padding: 10px 12px;
+    width: 100%;
+    border: 2.5px solid var(--ink);
+    border-radius: 12px 18px 14px 16px / 16px 12px 18px 14px;
+    background: #fff;
+    color: var(--fg);
+    box-shadow: 2px 2px 0 rgba(31, 48, 24, 0.08);
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+      linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+  }
+  select.text:focus {
+    outline: none;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
   label.field {
     display: block;
     margin: 12px 0 0;
@@ -701,9 +722,17 @@ export function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
       </a>
       <div class="nav-actions">
         {props.email ? <span class="nav-meta mono">{props.email}</span> : null}
+        <a class="btn secondary sm" href="/orgs">
+          Orgs
+        </a>
         {props.right === "gallery" ? (
           <a class="btn secondary sm" href="/gallery">
             Gallery
+          </a>
+        ) : null}
+        {props.email ? (
+          <a class="btn secondary sm" href="/auth/logout">
+            Log out
           </a>
         ) : null}
       </div>
@@ -807,6 +836,115 @@ function shareModeLabel(mode: string): string {
   return "Private";
 }
 
+
+export type GithubOrgOption = { login: string; description: string };
+
+/** Org + optional team picker (options from GitHub API). */
+export const GithubOrgTeamFields: FC<{
+  orgs: GithubOrgOption[];
+  selectedOrg?: string | null;
+  selectedTeam?: string | null;
+  githubLogin?: string | null;
+  connectUrl?: string;
+  listError?: string;
+}> = ({ orgs, selectedOrg, selectedTeam, githubLogin, connectUrl, listError }) => (
+  <div class="callout" style="margin-top:14px" data-gh-org-picker>
+    <strong>Organization / team</strong>
+    <p>
+      {githubLogin ? (
+        <>
+          Connected as <span class="mono">@{githubLogin}</span>.{" "}
+        </>
+      ) : null}
+      Pick an org you belong to. Leave team as “Whole organization” for every member.{" "}
+      {connectUrl ? <a href={connectUrl}>Manage GitHub</a> : null}
+    </p>
+    <p style="margin-top:8px;font-size:0.95rem">
+      On save we <strong style="color:var(--ink)">sync members</strong> with your token
+      (usernames + public emails). Teammates can sign in with email when we have it, or
+      GitHub by username — they don’t each need to authorize the org OAuth app. Hidden
+      emails fall back to GitHub sign-in.
+    </p>
+    {listError ? <p class="err" style="margin-top:10px">{listError}</p> : null}
+    {orgs.length === 0 && !listError ? (
+      <p class="err" style="margin-top:10px">
+        No organizations found for this GitHub account (or the token can’t list them).
+        Reconnect GitHub with <span class="mono">read:org</span>.
+      </p>
+    ) : null}
+    <label class="field">
+      Organization
+      <select
+        class="text"
+        name="github_org"
+        data-gh-org
+        required={orgs.length > 0}
+        style="margin-top:6px"
+      >
+        <option value="">Select an organization…</option>
+        {orgs.map((o) => (
+          <option value={o.login} selected={o.login === (selectedOrg ?? "")}>
+            {o.login}
+            {o.description ? ` — ${o.description.slice(0, 40)}` : ""}
+          </option>
+        ))}
+      </select>
+    </label>
+    <label class="field">
+      Team (optional)
+      <select class="text" name="github_team" data-gh-team data-initial-team={selectedTeam ?? ""} style="margin-top:6px">
+        <option value="" selected={!selectedTeam}>
+          Whole organization
+        </option>
+        {selectedTeam ? (
+          <option value={selectedTeam} selected>
+            {selectedTeam}
+          </option>
+        ) : null}
+      </select>
+    </label>
+  </div>
+);
+
+export const ORG_TEAM_PICKER_SCRIPT = `
+(function () {
+  function wire(root) {
+    var orgSel = root.querySelector("[data-gh-org]");
+    var teamSel = root.querySelector("[data-gh-team]");
+    if (!orgSel || !teamSel) return;
+    var initialTeam = teamSel.getAttribute("data-initial-team") || "";
+    async function loadTeams(org, keepTeam) {
+      teamSel.innerHTML = "";
+      var whole = document.createElement("option");
+      whole.value = "";
+      whole.textContent = "Whole organization";
+      teamSel.appendChild(whole);
+      if (!org) return;
+      try {
+        var r = await fetch("/api/session/github/orgs/" + encodeURIComponent(org) + "/teams", {
+          credentials: "same-origin",
+        });
+        if (!r.ok) return;
+        var j = await r.json();
+        (j.teams || []).forEach(function (t) {
+          var opt = document.createElement("option");
+          opt.value = t.slug;
+          opt.textContent = t.name + (t.slug !== t.name ? " (" + t.slug + ")" : "");
+          if (keepTeam && keepTeam === t.slug) opt.selected = true;
+          teamSel.appendChild(opt);
+        });
+      } catch (e) {}
+    }
+    orgSel.addEventListener("change", function () {
+      loadTeams(orgSel.value, "");
+    });
+    if (orgSel.value) loadTeams(orgSel.value, initialTeam || (teamSel.value || ""));
+  }
+  document.querySelectorAll("[data-gh-org-picker]").forEach(wire);
+})();
+`;
+
+
 /** Gate chrome: floating bar + optional share dialog + sandboxed iframe. */
 export const ArtifactFrame: FC<{
   id: string;
@@ -822,6 +960,9 @@ export const ArtifactFrame: FC<{
   githubConnected?: boolean;
   githubAvailable?: boolean;
   connectUrl?: string;
+  githubOrgs?: GithubOrgOption[];
+  githubOrgsError?: string;
+  githubLogin?: string | null;
 }> = ({
   id,
   title,
@@ -836,6 +977,9 @@ export const ArtifactFrame: FC<{
   githubConnected,
   githubAvailable,
   connectUrl,
+  githubOrgs = [],
+  githubOrgsError,
+  githubLogin,
 }) => (
   <Layout title={`${emoji} ${title}`} bare>
     <div class="viewer">
@@ -857,6 +1001,9 @@ export const ArtifactFrame: FC<{
               </button>
               <a class="btn ghost sm" href={shareUrl}>
                 Full page
+              </a>
+              <a class="btn ghost sm" href="/auth/logout">
+                Log out
               </a>
             </>
           ) : null}
@@ -940,17 +1087,14 @@ export const ArtifactFrame: FC<{
                   ) : null}
                 </div>
               ) : (
-                <div class="callout" style="margin-top:12px">
-                  <strong>Organization</strong>
-                  <label class="field">
-                    Org slug
-                    <input class="text" name="github_org" placeholder="acme" value={githubOrg ?? ""} autocomplete="off" />
-                  </label>
-                  <label class="field">
-                    Team (optional)
-                    <input class="text" name="github_team" placeholder="eng" value={githubTeam ?? ""} autocomplete="off" />
-                  </label>
-                </div>
+                <GithubOrgTeamFields
+                  orgs={githubOrgs}
+                  selectedOrg={githubOrg}
+                  selectedTeam={githubTeam}
+                  githubLogin={githubLogin}
+                  connectUrl={connectUrl}
+                  listError={githubOrgsError}
+                />
               )}
 
               <div class="modal-foot" style="padding:16px 0 0">
@@ -980,6 +1124,7 @@ export const ArtifactFrame: FC<{
       ) : null}
 
       <script dangerouslySetInnerHTML={{ __html: SHARE_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: ORG_TEAM_PICKER_SCRIPT }} />
     </div>
   </Layout>
 );

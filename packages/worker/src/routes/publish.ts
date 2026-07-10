@@ -15,11 +15,14 @@ import {
   setShareMode,
   addToAllowlist,
   setGithubTeamShare,
+  getOwnerGithub,
+  upsertGithubOrgLink,
 } from "../db";
 import { assertPublishAllowed, QuotaExceeded } from "../quota";
 import { MAX_ARTIFACT_BYTES } from "../csp";
 import { requireAgent, PUBLISH_SCOPE } from "../auth/agent";
 import { isGithubTeamShareAvailable, normalizeGithubSlug } from "../auth/github";
+import { syncGithubShareRoster } from "../github/roster-sync";
 import { enforce, RateLimited } from "../ratelimit";
 import { randomId } from "../util";
 
@@ -101,6 +104,21 @@ publishRoutes.post("/api/artifacts/:id/share", async (c) => {
       team = art.githubTeam;
     }
     await setGithubTeamShare(db, id, { org, team });
+    const link = await getOwnerGithub(db, owner);
+    if (link) {
+      await upsertGithubOrgLink(db, {
+        orgSlug: org,
+        linkedByEmail: owner,
+        githubLogin: link.githubLogin,
+        accessToken: link.accessToken,
+      });
+      await syncGithubShareRoster(db, {
+        artifactId: id,
+        accessToken: link.accessToken,
+        org,
+        team,
+      });
+    }
   } else if (effectiveMode && SHARE_MODES.includes(effectiveMode)) {
     await setShareMode(db, id, effectiveMode);
   }

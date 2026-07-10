@@ -7,6 +7,7 @@ import { viewRoutes } from "./routes/view";
 import { publishRoutes } from "./routes/publish";
 import { authRoutes } from "./routes/auth";
 import { shareRoutes } from "./routes/share";
+import { orgRoutes } from "./routes/orgs";
 import { githubApiRoutes } from "./routes/github-api";
 import { FAVICON_PNG_BASE64, LOGO_PNG_BASE64, LOGO_PNG_MIME } from "./brand";
 
@@ -47,6 +48,7 @@ app.route("/", agentRoutes); // /auth.md, /.well-known/..., /agent/*, /oauth2/*
 app.route("/", publishRoutes); // /api/publish
 app.route("/", githubApiRoutes); // /api/github/*
 app.route("/", shareRoutes); // /gallery, /share/*
+app.route("/", orgRoutes); // /orgs, /orgs/:slug
 app.route("/", viewRoutes); // /a/:id, /raw/:id
 
 app.notFound((c) => c.json({ error: "not_found" }, 404));

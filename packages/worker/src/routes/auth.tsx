@@ -33,6 +33,7 @@ import {
   findGithubCliClaimByCodeHash,
   completeGithubCliClaim,
   upsertOwnerGithub,
+  deleteOwnerGithub,
 } from "../db";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
 import { now, randomId, sha256Hex } from "../util";
@@ -193,7 +194,7 @@ authRoutes.get("/connect/github", async (c) => {
             </p>
           ) : null}
           {ok === "disconnected" ? (
-            <p class="ok">GitHub disconnected from this session.</p>
+            <p class="ok">GitHub unlinked. You’re still signed in to lookmom — use Log out to end the session.</p>
           ) : null}
 
           {!available ? (
@@ -225,10 +226,13 @@ authRoutes.get("/connect/github", async (c) => {
               <form method="post" action="/connect/github/disconnect" style="margin:0">
                 <input type="hidden" name="return_to" value={returnTo} />
                 <button class="btn secondary" type="submit">
-                  Disconnect
+                  Unlink GitHub
                 </button>
               </form>
             ) : null}
+            <a class="btn ghost sm" href="/auth/logout">
+              Log out
+            </a>
             <a class="btn secondary" href={returnTo}>
               {returnTo.startsWith("/share/") ? "Back to Share" : "Done"}
             </a>
@@ -246,6 +250,12 @@ authRoutes.post("/connect/github/disconnect", async (c) => {
   if (!viewer) return c.redirect("/auth/login?return_to=/connect/github");
   const body = await c.req.parseBody();
   const returnTo = safeReturnTo(String(body.return_to ?? "/connect/github"));
+  // Unlink GitHub only — lookmom session stays signed in.
+  try {
+    await deleteOwnerGithub(getDb(c.env.DB), viewer.email);
+  } catch (e) {
+    console.error("deleteOwnerGithub failed:", e);
+  }
   await updateSession(c, {
     email: viewer.email,
     name: viewer.name,
@@ -334,9 +344,62 @@ authRoutes.get("/auth/login", async (c) => {
 });
 
 authRoutes.get("/auth/callback", async (c) => {
+  const oauthError = c.req.query("error");
+  const oauthDesc = (c.req.query("error_description") ?? "").replace(/\+/g, " ");
   const code = c.req.query("code");
   const state = c.req.query("state");
   const raw = getCookie(c, OAUTH_COOKIE);
+
+  // WorkOS / provider failures land here without a code (e.g. GitHub userinfo failed).
+  if (oauthError) {
+    deleteCookie(c, OAUTH_COOKIE, { path: "/" });
+    let hint =
+      "Something went wrong during OAuth. Try again, or check WorkOS GitHub settings.";
+    const descLower = oauthDesc.toLowerCase();
+    if (descLower.includes("github") || oauthError === "oauth_failed") {
+      hint =
+        "WorkOS couldn’t load your GitHub profile. In the WorkOS dashboard: enable GitHub OAuth, turn on “Return GitHub OAuth tokens”, and request scopes read:user, user:email, read:org. Also confirm the GitHub OAuth App client id/secret are correct.";
+    }
+    const rawState = raw;
+    let returnTo = "/gallery";
+    let purpose = "";
+    if (rawState) {
+      try {
+        const p = JSON.parse(rawState) as OauthState;
+        if (p.returnTo) returnTo = safeReturnTo(p.returnTo);
+        purpose = p.purpose ?? "";
+      } catch {
+        /* ignore */
+      }
+    }
+    const retryHref =
+      purpose === "connect_github" || purpose === "cli_github"
+        ? `/connect/github?return_to=${encodeURIComponent(returnTo)}`
+        : `/auth/login?return_to=${encodeURIComponent(returnTo)}`;
+    return c.html(
+      <SketchShell title="Sign-in failed" kicker="oauth" navRight="gallery">
+        <h1>Couldn’t finish sign-in</h1>
+        <p class="err">{hint}</p>
+        {oauthDesc ? (
+          <p>
+            Provider message: <span class="mono">{oauthDesc}</span>
+          </p>
+        ) : null}
+        <div class="row" style="margin-top:16px">
+          <a class="btn" href={retryHref}>
+            Try again
+          </a>
+          <a class="btn secondary" href="/gallery">
+            Gallery
+          </a>
+          <a class="btn ghost" href="/auth/logout">
+            Log out
+          </a>
+        </div>
+      </SketchShell>,
+    );
+  }
+
   deleteCookie(c, OAUTH_COOKIE, { path: "/" });
 
   if (!code || !raw) return c.text("Invalid login state", 400);
@@ -521,9 +584,32 @@ authRoutes.get("/auth/github", async (c) => {
 });
 
 authRoutes.get("/auth/github/callback", async (c) => {
+  const oauthError = c.req.query("error");
+  const oauthDesc = (c.req.query("error_description") ?? "").replace(/\+/g, " ");
   const code = c.req.query("code");
   const state = c.req.query("state");
   const raw = getCookie(c, GITHUB_OAUTH_COOKIE);
+
+  if (oauthError) {
+    deleteCookie(c, GITHUB_OAUTH_COOKIE, { path: "/" });
+    return c.html(
+      <SketchShell title="GitHub login failed" kicker="oauth" navRight="gallery">
+        <h1>GitHub denied access</h1>
+        <p class="err">
+          {oauthDesc || oauthError || "GitHub OAuth failed."}
+        </p>
+        <div class="row" style="margin-top:16px">
+          <a class="btn" href="/connect/github">
+            Try again
+          </a>
+          <a class="btn secondary" href="/gallery">
+            Gallery
+          </a>
+        </div>
+      </SketchShell>,
+    );
+  }
+
   deleteCookie(c, GITHUB_OAUTH_COOKIE, { path: "/" });
 
   if (!code || !raw) return c.text("Invalid GitHub login state", 400);
@@ -565,5 +651,6 @@ authRoutes.get("/auth/github/callback", async (c) => {
 
 authRoutes.get("/auth/logout", (c) => {
   endSession(c);
-  return c.redirect("/");
+  // Home redirects to gallery, which will ask to sign in if needed.
+  return c.redirect("/auth/login?return_to=/gallery");
 });

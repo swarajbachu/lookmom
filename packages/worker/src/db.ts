@@ -123,7 +123,9 @@ export async function setShareMode(db: DB, artifactId: string, mode: ShareMode):
       shareMode: mode,
       updatedAt: now(),
       // Leaving github_team clears org/team so settings don't surprise later.
-      ...(mode !== "github_team" ? { githubOrg: null, githubTeam: null } : {}),
+      ...(mode !== "github_team"
+        ? { githubOrg: null, githubTeam: null, orgSlug: null }
+        : {}),
     })
     .where(eq(schema.artifacts.id, artifactId));
 }
@@ -142,6 +144,7 @@ export async function setGithubTeamShare(
       shareMode: "github_team",
       githubOrg: org,
       githubTeam: team,
+      orgSlug: org,
       updatedAt: now(),
     })
     .where(eq(schema.artifacts.id, artifactId));
@@ -374,3 +377,206 @@ export async function completeGithubCliClaim(
 }
 
 export { sql };
+
+
+// --- GitHub org share roster (owner-synced member snapshot) -----------------
+
+export async function replaceGithubShareRoster(
+  db: DB,
+  artifactId: string,
+  members: Array<{ githubLogin: string; email?: string | null }>,
+): Promise<void> {
+  const ts = now();
+  await db
+    .delete(schema.githubShareRoster)
+    .where(eq(schema.githubShareRoster.artifactId, artifactId));
+  if (members.length === 0) return;
+  // Chunk inserts for D1 limits
+  const rows = members.map((m) => ({
+    artifactId,
+    githubLogin: m.githubLogin.toLowerCase(),
+    email: m.email ? m.email.toLowerCase() : null,
+    syncedAt: ts,
+  }));
+  for (let i = 0; i < rows.length; i += 40) {
+    await db.insert(schema.githubShareRoster).values(rows.slice(i, i + 40));
+  }
+}
+
+export async function isOnGithubShareRoster(
+  db: DB,
+  artifactId: string,
+  args: { githubLogin?: string | null; email?: string | null },
+): Promise<boolean> {
+  if (args.githubLogin) {
+    const row = await db.query.githubShareRoster.findFirst({
+      where: and(
+        eq(schema.githubShareRoster.artifactId, artifactId),
+        eq(schema.githubShareRoster.githubLogin, args.githubLogin.toLowerCase()),
+      ),
+    });
+    if (row) return true;
+  }
+  if (args.email) {
+    const row = await db.query.githubShareRoster.findFirst({
+      where: and(
+        eq(schema.githubShareRoster.artifactId, artifactId),
+        eq(schema.githubShareRoster.email, args.email.toLowerCase()),
+      ),
+    });
+    if (row) return true;
+  }
+  return false;
+}
+
+export async function countGithubShareRoster(db: DB, artifactId: string): Promise<number> {
+  const rows = await db.query.githubShareRoster.findMany({
+    where: eq(schema.githubShareRoster.artifactId, artifactId),
+  });
+  return rows.length;
+}
+
+
+// --- First-class GitHub orgs ------------------------------------------------
+
+export async function upsertGithubOrgLink(
+  db: DB,
+  args: {
+    orgSlug: string;
+    linkedByEmail: string;
+    githubLogin: string;
+    accessToken: string;
+  },
+): Promise<void> {
+  const org = args.orgSlug.toLowerCase();
+  const ts = now();
+  const existing = await db.query.githubOrgLinks.findFirst({
+    where: eq(schema.githubOrgLinks.orgSlug, org),
+  });
+  if (existing) {
+    await db
+      .update(schema.githubOrgLinks)
+      .set({
+        linkedByEmail: args.linkedByEmail.toLowerCase(),
+        githubLogin: args.githubLogin,
+        accessToken: args.accessToken,
+      })
+      .where(eq(schema.githubOrgLinks.orgSlug, org));
+  } else {
+    await db.insert(schema.githubOrgLinks).values({
+      orgSlug: org,
+      linkedByEmail: args.linkedByEmail.toLowerCase(),
+      githubLogin: args.githubLogin,
+      accessToken: args.accessToken,
+      lastSyncedAt: null,
+      createdAt: ts,
+    });
+  }
+}
+
+export async function getGithubOrgLink(db: DB, orgSlug: string) {
+  return db.query.githubOrgLinks.findFirst({
+    where: eq(schema.githubOrgLinks.orgSlug, orgSlug.toLowerCase()),
+  });
+}
+
+export async function listGithubOrgLinks(db: DB) {
+  return db.query.githubOrgLinks.findMany({
+    orderBy: desc(schema.githubOrgLinks.createdAt),
+  });
+}
+
+export async function deleteGithubOrgLink(db: DB, orgSlug: string): Promise<void> {
+  const org = orgSlug.toLowerCase();
+  await db.delete(schema.githubOrgMembers).where(eq(schema.githubOrgMembers.orgSlug, org));
+  await db.delete(schema.githubOrgLinks).where(eq(schema.githubOrgLinks.orgSlug, org));
+}
+
+export async function touchGithubOrgLinkSynced(db: DB, orgSlug: string): Promise<void> {
+  await db
+    .update(schema.githubOrgLinks)
+    .set({ lastSyncedAt: now() })
+    .where(eq(schema.githubOrgLinks.orgSlug, orgSlug.toLowerCase()));
+}
+
+export async function replaceGithubOrgMembers(
+  db: DB,
+  orgSlug: string,
+  members: Array<{ githubLogin: string; email?: string | null }>,
+): Promise<void> {
+  const org = orgSlug.toLowerCase();
+  const ts = now();
+  await db.delete(schema.githubOrgMembers).where(eq(schema.githubOrgMembers.orgSlug, org));
+  if (members.length === 0) return;
+  const rows = members.map((m) => ({
+    orgSlug: org,
+    githubLogin: m.githubLogin.toLowerCase(),
+    email: m.email ? m.email.toLowerCase() : null,
+    syncedAt: ts,
+  }));
+  for (let i = 0; i < rows.length; i += 40) {
+    await db.insert(schema.githubOrgMembers).values(rows.slice(i, i + 40));
+  }
+}
+
+export async function listGithubOrgMembers(db: DB, orgSlug: string) {
+  return db.query.githubOrgMembers.findMany({
+    where: eq(schema.githubOrgMembers.orgSlug, orgSlug.toLowerCase()),
+    orderBy: desc(schema.githubOrgMembers.syncedAt),
+  });
+}
+
+export async function isOrgMember(
+  db: DB,
+  orgSlug: string,
+  args: { githubLogin?: string | null; email?: string | null },
+): Promise<boolean> {
+  const org = orgSlug.toLowerCase();
+  if (args.githubLogin) {
+    const row = await db.query.githubOrgMembers.findFirst({
+      where: and(
+        eq(schema.githubOrgMembers.orgSlug, org),
+        eq(schema.githubOrgMembers.githubLogin, args.githubLogin.toLowerCase()),
+      ),
+    });
+    if (row) return true;
+  }
+  if (args.email) {
+    const row = await db.query.githubOrgMembers.findFirst({
+      where: and(
+        eq(schema.githubOrgMembers.orgSlug, org),
+        eq(schema.githubOrgMembers.email, args.email.toLowerCase()),
+      ),
+    });
+    if (row) return true;
+  }
+  return false;
+}
+
+/** Orgs this viewer can access: on roster by login/email, or is linker. */
+export async function listOrgsForViewer(
+  db: DB,
+  args: { email: string; githubLogin?: string | null },
+) {
+  const all = await listGithubOrgLinks(db);
+  const email = args.email.toLowerCase();
+  const login = args.githubLogin?.toLowerCase();
+  const out = [];
+  for (const link of all) {
+    if (link.linkedByEmail === email) {
+      out.push(link);
+      continue;
+    }
+    if (await isOrgMember(db, link.orgSlug, { email, githubLogin: login })) {
+      out.push(link);
+    }
+  }
+  return out;
+}
+
+export async function listArtifactsByOrg(db: DB, orgSlug: string): Promise<Artifact[]> {
+  return db.query.artifacts.findMany({
+    where: eq(schema.artifacts.orgSlug, orgSlug.toLowerCase()),
+    orderBy: desc(schema.artifacts.updatedAt),
+  });
+}
