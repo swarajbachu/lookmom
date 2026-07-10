@@ -28,14 +28,20 @@ import {
   updateSession,
   clearGithubTokenCookie,
 } from "../auth/session";
+import {
+  getDb,
+  findGithubCliClaimByCodeHash,
+  completeGithubCliClaim,
+  upsertOwnerGithub,
+} from "../db";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
-import { randomId } from "../util";
+import { now, randomId, sha256Hex } from "../util";
 import { Layout } from "../chrome";
 
 const OAUTH_COOKIE = "lookmom_oauth";
 const GITHUB_OAUTH_COOKIE = "lookmom_gh_oauth";
 
-type OauthPurpose = "login" | "connect_github" | "viewer_github";
+type OauthPurpose = "login" | "connect_github" | "viewer_github" | "cli_github";
 
 interface OauthState {
   state: string;
@@ -43,6 +49,10 @@ interface OauthState {
   purpose: OauthPurpose;
   /** Prefer WorkOS GitHubOAuth on the main login path. */
   via?: "workos_github" | "workos_authkit" | "github_direct";
+  /** CLI connect claim id (github_cli_claims). */
+  cliClaimId?: string;
+  /** Owner email bound at claim start (from agent token). */
+  cliOwnerEmail?: string;
 }
 
 /** Only allow same-site relative redirect targets. */
@@ -66,6 +76,104 @@ function setOauthCookie(
 }
 
 export const authRoutes = new Hono<{ Bindings: Env; Variables: Vars }>();
+
+// --- CLI GitHub connect (WorkOS) — agent shows code, human opens this URL ----
+
+authRoutes.get("/connect/github/cli", async (c) => {
+  if (!isWorkosConfigured(c.env)) {
+    return c.html(
+      <Layout title="WorkOS required">
+        <div class="wrap">
+          <div class="card">
+            <h1>WorkOS required</h1>
+            <p>
+              CLI GitHub connect goes through WorkOS GitHub OAuth (return tokens +{" "}
+              <span class="mono">read:org</span>). Configure WorkOS on this instance.
+            </p>
+          </div>
+        </div>
+      </Layout>,
+    );
+  }
+
+  const code = (c.req.query("code") ?? "").trim().toUpperCase();
+  if (!code) {
+    return c.html(
+      <Layout title="Connect GitHub (CLI)">
+        <div class="wrap">
+          <div class="card">
+            <h1>Connect GitHub for your agent</h1>
+            <p>Enter the code your agent showed you.</p>
+            <form method="get" action="/connect/github/cli">
+              <input class="code" name="code" placeholder="XXXX-XXXX" required maxlength={9} />
+              <div class="row" style="margin-top:16px">
+                <button class="btn" type="submit">
+                  Continue with GitHub
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Layout>,
+    );
+  }
+
+  const db = getDb(c.env.DB);
+  const claim = await findGithubCliClaimByCodeHash(db, await sha256Hex(code));
+  if (!claim || claim.status !== "pending" || claim.expiresAt < now()) {
+    return c.html(
+      <Layout title="Invalid code">
+        <div class="wrap">
+          <div class="card">
+            <h1>Invalid or expired code</h1>
+            <p>Ask your agent to run <span class="mono">lookmom github login</span> again.</p>
+          </div>
+        </div>
+      </Layout>,
+    );
+  }
+
+  // Straight to WorkOS GitHubOAuth — token returned to callback, stored for owner.
+  const state = randomId();
+  setOauthCookie(c, {
+    state,
+    returnTo: "/connect/github/cli/done",
+    purpose: "cli_github",
+    via: "workos_github",
+    cliClaimId: claim.id,
+    cliOwnerEmail: claim.ownerEmail,
+  });
+  return c.redirect(
+    authorizationUrl(c.env, {
+      state,
+      provider: "GitHubOAuth",
+      providerScopes: GITHUB_MEMBERSHIP_SCOPES,
+    }),
+  );
+});
+
+authRoutes.get("/connect/github/cli/done", (c) => {
+  const login = c.req.query("login");
+  return c.html(
+    <Layout title="GitHub connected">
+      <div class="wrap">
+        <div class="card">
+          <h1>GitHub connected</h1>
+          <p class="ok">
+            {login ? (
+              <>
+                Connected as <span class="mono">@{login}</span>.
+              </>
+            ) : (
+              <>Connected.</>
+            )}{" "}
+            You can return to your agent — it can list orgs and share now.
+          </p>
+        </div>
+      </div>
+    </Layout>,
+  );
+});
 
 // --- Connect GitHub (owner path for org share) ------------------------------
 
@@ -232,7 +340,15 @@ authRoutes.get("/auth/login", async (c) => {
     purpose: "login",
     via: "workos_authkit",
   });
-  return c.redirect(authorizationUrl(c.env, { state, provider: "authkit" }));
+  // Include GitHub membership scopes so if the user picks GitHub as their
+  // AuthKit method we get return tokens and can link owner_github for the CLI.
+  return c.redirect(
+    authorizationUrl(c.env, {
+      state,
+      provider: "authkit",
+      providerScopes: GITHUB_MEMBERSHIP_SCOPES,
+    }),
+  );
 });
 
 authRoutes.get("/auth/callback", async (c) => {
@@ -266,6 +382,52 @@ authRoutes.get("/auth/callback", async (c) => {
         console.error("github profile from WorkOS token failed:", e);
         // Continue without GitHub — identity still works.
       }
+    }
+
+    // Any WorkOS path that returns a GitHub token links the owner for CLI/orgs.
+    // Covers: default AuthKit login with GitHub, web Connect, CLI connect claim.
+    const linkOwnerEmail =
+      parsed.purpose === "cli_github"
+        ? parsed.cliOwnerEmail
+        : (existing?.email ?? user.email);
+
+    if (ghToken && githubLogin && linkOwnerEmail) {
+      try {
+        await upsertOwnerGithub(getDb(c.env.DB), {
+          ownerEmail: linkOwnerEmail,
+          githubLogin,
+          accessToken: ghToken,
+        });
+      } catch (e) {
+        console.error("upsertOwnerGithub failed:", e);
+      }
+    }
+
+    // CLI connect: complete claim so the agent poll succeeds.
+    if (parsed.purpose === "cli_github") {
+      if (!ghToken || !githubLogin || !parsed.cliClaimId || !parsed.cliOwnerEmail) {
+        return c.html(
+          <Layout title="GitHub connect failed">
+            <div class="wrap">
+              <div class="card">
+                <h1>GitHub token missing</h1>
+                <p>
+                  WorkOS signed you in but did not return a GitHub access token. In the
+                  WorkOS dashboard enable <strong>Return GitHub OAuth tokens</strong> and
+                  scopes <span class="mono">read:user user:email read:org</span>.
+                </p>
+              </div>
+            </div>
+          </Layout>,
+        );
+      }
+      const db = getDb(c.env.DB);
+      await completeGithubCliClaim(db, parsed.cliClaimId, githubLogin);
+      await startSession(c, parsed.cliOwnerEmail, user.name, githubLogin);
+      setGithubTokenCookie(c, ghToken);
+      return c.redirect(
+        `/connect/github/cli/done?login=${encodeURIComponent(githubLogin)}`,
+      );
     }
 
     // Connect flow: keep existing email if already signed in.

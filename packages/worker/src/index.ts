@@ -7,6 +7,7 @@ import { viewRoutes } from "./routes/view";
 import { publishRoutes } from "./routes/publish";
 import { authRoutes } from "./routes/auth";
 import { shareRoutes } from "./routes/share";
+import { githubApiRoutes } from "./routes/github-api";
 
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 
@@ -21,6 +22,7 @@ app.get("/healthz", (c) => c.json({ ok: true }));
 app.route("/", authRoutes); // /auth/*, /connect/github
 app.route("/", agentRoutes); // /auth.md, /.well-known/..., /agent/*, /oauth2/*
 app.route("/", publishRoutes); // /api/publish
+app.route("/", githubApiRoutes); // /api/github/*
 app.route("/", shareRoutes); // /gallery, /share/*
 app.route("/", viewRoutes); // /a/:id, /raw/:id
 

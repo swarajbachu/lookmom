@@ -15,6 +15,13 @@
       "when": 1783605000000,
       "tag": "0001_github_team_share",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783606000000,
+      "tag": "0002_owner_github_cli",
+      "breakpoints": true
     }
   ]
 }

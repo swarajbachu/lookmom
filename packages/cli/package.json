@@ -1,17 +1,43 @@
 {
-  "name": "@lookmom/cli",
-  "version": "0.1.0",
-  "private": true,
+  "name": "lookmom",
+  "version": "0.3.1",
+  "description": "Publish self-contained HTML artifacts to a private, access-controlled URL. CLI for a self-hostable lookmom instance.",
   "type": "module",
+  "license": "MIT",
   "bin": {
-    "lookmom": "./src/cli.ts",
-    "lm": "./src/cli.ts"
+    "lookmom": "./dist/cli.js",
+    "lm": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "start": "bun run src/cli.ts",
-    "build": "bun build src/cli.ts --compile --outfile dist/lookmom",
+    "build": "bun build src/cli.ts --outfile dist/cli.js --target bun",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "keywords": [
+    "html",
+    "artifacts",
+    "cloudflare",
+    "claude",
+    "cli",
+    "publish"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swarajbachu/lookmom.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/swarajbachu/lookmom/issues"
+  },
+  "homepage": "https://github.com/swarajbachu/lookmom#readme",
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "typescript": "^6.0.3"

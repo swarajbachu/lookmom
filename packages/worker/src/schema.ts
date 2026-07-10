@@ -92,6 +92,40 @@ export const claimAttempts = sqliteTable(
   (t) => [index("idx_claim_token").on(t.claimTokenHash)],
 );
 
+/**
+ * Owner's GitHub link from WorkOS GitHubOAuth (CLI or web connect).
+ * access_token is used server-side for org/team listing + membership.
+ */
+export const ownerGithub = sqliteTable("owner_github", {
+  ownerEmail: text("owner_email").primaryKey(),
+  githubLogin: text("github_login").notNull(),
+  accessToken: text("access_token").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+/** CLI `lookmom github login` claim — same pattern as auth.md device login. */
+export const githubCliClaims = sqliteTable(
+  "github_cli_claims",
+  {
+    id: text("id").primaryKey(),
+    claimTokenHash: text("claim_token_hash").notNull(),
+    userCodeHash: text("user_code_hash").notNull(),
+    ownerEmail: text("owner_email").notNull(),
+    status: text("status", { enum: ["pending", "completed", "expired"] })
+      .notNull()
+      .default("pending"),
+    githubLogin: text("github_login"),
+    createdAt: integer("created_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (t) => [
+    index("idx_gh_cli_claim_token").on(t.claimTokenHash),
+    index("idx_gh_cli_claim_code").on(t.userCodeHash),
+  ],
+);
+
 export type Artifact = InferSelectModel<typeof artifacts>;
 export type Version = InferSelectModel<typeof versions>;
 export type ShareMode = Artifact["shareMode"];
+export type OwnerGithub = InferSelectModel<typeof ownerGithub>;
+

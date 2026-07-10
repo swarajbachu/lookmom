@@ -292,4 +292,85 @@ export async function consumeClaim(db: DB, id: string): Promise<void> {
     .where(eq(schema.claimAttempts.id, id));
 }
 
+// --- Owner GitHub link (WorkOS) + CLI connect claims ------------------------
+
+export async function upsertOwnerGithub(
+  db: DB,
+  args: { ownerEmail: string; githubLogin: string; accessToken: string },
+): Promise<void> {
+  const ts = now();
+  await db
+    .insert(schema.ownerGithub)
+    .values({
+      ownerEmail: args.ownerEmail.toLowerCase(),
+      githubLogin: args.githubLogin.toLowerCase(),
+      accessToken: args.accessToken,
+      updatedAt: ts,
+    })
+    .onConflictDoUpdate({
+      target: schema.ownerGithub.ownerEmail,
+      set: {
+        githubLogin: args.githubLogin.toLowerCase(),
+        accessToken: args.accessToken,
+        updatedAt: ts,
+      },
+    });
+}
+
+export async function getOwnerGithub(db: DB, ownerEmail: string) {
+  return db.query.ownerGithub.findFirst({
+    where: eq(schema.ownerGithub.ownerEmail, ownerEmail.toLowerCase()),
+  });
+}
+
+export async function deleteOwnerGithub(db: DB, ownerEmail: string): Promise<void> {
+  await db
+    .delete(schema.ownerGithub)
+    .where(eq(schema.ownerGithub.ownerEmail, ownerEmail.toLowerCase()));
+}
+
+export async function createGithubCliClaim(
+  db: DB,
+  args: {
+    id: string;
+    claimTokenHash: string;
+    userCodeHash: string;
+    ownerEmail: string;
+    expiresAt: number;
+  },
+): Promise<void> {
+  await db.insert(schema.githubCliClaims).values({
+    id: args.id,
+    claimTokenHash: args.claimTokenHash,
+    userCodeHash: args.userCodeHash,
+    ownerEmail: args.ownerEmail.toLowerCase(),
+    status: "pending",
+    createdAt: now(),
+    expiresAt: args.expiresAt,
+  });
+}
+
+export async function findGithubCliClaimByTokenHash(db: DB, claimTokenHash: string) {
+  return db.query.githubCliClaims.findFirst({
+    where: eq(schema.githubCliClaims.claimTokenHash, claimTokenHash),
+  });
+}
+
+export async function findGithubCliClaimByCodeHash(db: DB, userCodeHash: string) {
+  return db.query.githubCliClaims.findFirst({
+    where: eq(schema.githubCliClaims.userCodeHash, userCodeHash),
+  });
+}
+
+export async function completeGithubCliClaim(
+  db: DB,
+  id: string,
+  githubLogin: string,
+): Promise<void> {
+  await db
+    .update(schema.githubCliClaims)
+    .set({ status: "completed", githubLogin: githubLogin.toLowerCase() })
+    .where(eq(schema.githubCliClaims.id, id));
+}
+
 export { sql };

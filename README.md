@@ -121,7 +121,7 @@ bun run packages/cli/src/cli.ts <command>
 | `lookmom list` | List your artifacts. |
 | `lookmom logout` | Revoke the token and forget it. |
 
-`--api <url>` (or `$LOOKMOM_API_URL`) points the CLI at any instance; defaults to `http://localhost:8787`.
+Defaults to production (`https://lookmom.stuff.md`). Override with `--api <url>` or `$LOOKMOM_API_URL` (e.g. `http://localhost:8787` for local).
 
 ---
 
