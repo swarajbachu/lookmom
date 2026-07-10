@@ -1,6 +1,7 @@
 /** Server-rendered product chrome (Hono JSX). Minimal, calm UI. */
 import type { FC, PropsWithChildren } from "hono/jsx";
 import type { Artifact } from "./schema";
+import { LOGO_DATA_URI } from "./brand";
 
 /**
  * Design system — quiet surfaces, hairline rings, tabular nums,
@@ -128,12 +129,14 @@ const STYLE = `
     letter-spacing: -0.02em;
   }
   .nav-mark {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 7px;
-    background: linear-gradient(145deg, var(--accent), #c084fc 120%);
     box-shadow: var(--shadow-xs);
     flex-shrink: 0;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-elevated);
   }
   .nav-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .nav-meta {
@@ -663,6 +666,8 @@ export const Layout: FC<
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="color-scheme" content="light dark" />
       <title>{title}</title>
+      <link rel="icon" href="/logo.png" type="image/png" />
+      <link rel="apple-touch-icon" href="/logo.png" />
       <style dangerouslySetInnerHTML={{ __html: STYLE }} />
     </head>
     <body class={bare ? undefined : "shell"}>{children}</body>
@@ -673,7 +678,7 @@ function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
   return (
     <header class="nav">
       <a class="nav-brand" href="/gallery">
-        <span class="nav-mark" aria-hidden="true" />
+        <img class="nav-mark" src={LOGO_DATA_URI} width={24} height={24} alt="" />
         lookmom
       </a>
       <div class="nav-actions">

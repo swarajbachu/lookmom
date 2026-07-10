@@ -67,7 +67,7 @@ shareRoutes.get("/share/:id", async (c) => {
     <Layout title={`Share — ${art.title}`}>
       <header class="nav">
         <a class="nav-brand" href="/gallery">
-          <span class="nav-mark" aria-hidden="true" />
+          <img class="nav-mark" src="/logo.png" width={24} height={24} alt="" />
           lookmom
         </a>
         <div class="nav-actions">
