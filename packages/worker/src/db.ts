@@ -374,3 +374,61 @@ export async function completeGithubCliClaim(
 }
 
 export { sql };
+
+
+// --- GitHub org share roster (owner-synced member snapshot) -----------------
+
+export async function replaceGithubShareRoster(
+  db: DB,
+  artifactId: string,
+  members: Array<{ githubLogin: string; email?: string | null }>,
+): Promise<void> {
+  const ts = now();
+  await db
+    .delete(schema.githubShareRoster)
+    .where(eq(schema.githubShareRoster.artifactId, artifactId));
+  if (members.length === 0) return;
+  // Chunk inserts for D1 limits
+  const rows = members.map((m) => ({
+    artifactId,
+    githubLogin: m.githubLogin.toLowerCase(),
+    email: m.email ? m.email.toLowerCase() : null,
+    syncedAt: ts,
+  }));
+  for (let i = 0; i < rows.length; i += 40) {
+    await db.insert(schema.githubShareRoster).values(rows.slice(i, i + 40));
+  }
+}
+
+export async function isOnGithubShareRoster(
+  db: DB,
+  artifactId: string,
+  args: { githubLogin?: string | null; email?: string | null },
+): Promise<boolean> {
+  if (args.githubLogin) {
+    const row = await db.query.githubShareRoster.findFirst({
+      where: and(
+        eq(schema.githubShareRoster.artifactId, artifactId),
+        eq(schema.githubShareRoster.githubLogin, args.githubLogin.toLowerCase()),
+      ),
+    });
+    if (row) return true;
+  }
+  if (args.email) {
+    const row = await db.query.githubShareRoster.findFirst({
+      where: and(
+        eq(schema.githubShareRoster.artifactId, artifactId),
+        eq(schema.githubShareRoster.email, args.email.toLowerCase()),
+      ),
+    });
+    if (row) return true;
+  }
+  return false;
+}
+
+export async function countGithubShareRoster(db: DB, artifactId: string): Promise<number> {
+  const rows = await db.query.githubShareRoster.findMany({
+    where: eq(schema.githubShareRoster.artifactId, artifactId),
+  });
+  return rows.length;
+}

@@ -14,9 +14,11 @@ import {
   addToAllowlist,
   setGithubTeamShare,
   getOwnerGithub,
+  countGithubShareRoster,
 } from "../db";
 import { normalizeGithubSlug, isGithubTeamShareAvailable } from "../auth/github";
 import { listUserOrgs } from "../github/orgs";
+import { syncGithubShareRoster } from "../github/roster-sync";
 import { Gallery, GithubOrgTeamFields, Layout, ORG_TEAM_PICKER_SCRIPT } from "../chrome";
 
 const SHARE_MODES: ShareMode[] = ["private", "allowlist", "public", "github_team"];
@@ -60,6 +62,9 @@ shareRoutes.get("/share/:id", async (c) => {
   if (art.ownerEmail !== viewer.email) return c.text("Forbidden", 403);
 
   const err = c.req.query("err");
+  const ok = c.req.query("ok");
+  const syncedMembers = c.req.query("members");
+  const syncedEmails = c.req.query("emails");
   const githubAvailable = isGithubTeamShareAvailable(c.env);
   const connectUrl = `/connect/github?return_to=${encodeURIComponent(`/share/${id}`)}`;
   const previewUrl = `/a/${id}`;
@@ -106,6 +111,13 @@ shareRoutes.get("/share/:id", async (c) => {
             </a>
           </p>
           {err ? <p class="err">{err}</p> : null}
+          {ok === "synced" ? (
+            <p class="ok">
+              Synced {syncedMembers ?? "0"} members
+              {syncedEmails ? ` · ${syncedEmails} public emails added for email sign-in` : ""}.
+              Teammates can use email if we found one, or GitHub sign-in by username.
+            </p>
+          ) : null}
 
           <form method="post" action={`/share/${id}/mode`} style="margin-bottom:24px">
             <input type="hidden" name="return_to" value={`/share/${id}`} />
@@ -250,6 +262,34 @@ shareRoutes.post("/share/:id/mode", async (c) => {
       }
     }
     await setGithubTeamShare(db, id, { org, team });
+    // Snapshot members with owner's token so teammates don't each need org OAuth/SAML.
+    const link = await getOwnerGithub(db, viewer.email);
+    if (link) {
+      const sync = await syncGithubShareRoster(db, {
+        artifactId: id,
+        accessToken: link.accessToken,
+        org,
+        team,
+      });
+      if (sync.error) {
+        return c.redirect(
+          `${fallback}?err=${encodeURIComponent(
+            `Org saved, but member sync failed (${sync.error}). Reconnect GitHub with read:org, then save again.`,
+          )}`,
+        );
+      }
+      // Prefer staying on returnTo (dialog) with a soft success via query
+      if (returnTo.includes("/a/")) {
+        return c.redirect(
+          returnTo.includes("?")
+            ? `${returnTo}&synced=${sync.members}`
+            : `${returnTo}&synced=${sync.members}`,
+        );
+      }
+      return c.redirect(
+        `${fallback}?ok=synced&members=${sync.members}&emails=${sync.emails}`,
+      );
+    }
   } else {
     await setShareMode(db, id, mode);
   }

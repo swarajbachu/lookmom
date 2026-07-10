@@ -65,3 +65,66 @@ export async function listOrgTeams(
   }
   return out;
 }
+
+/** List org member logins (paginated). Requires read:org. */
+export async function listOrgMembers(
+  accessToken: string,
+  org: string,
+): Promise<string[]> {
+  const out: string[] = [];
+  let page = 1;
+  for (;;) {
+    const res = await fetch(
+      `${GITHUB_API}/orgs/${encodeURIComponent(org)}/members?per_page=100&page=${page}`,
+      { headers: ghHeaders(accessToken) },
+    );
+    if (res.status === 404) throw new Error("org_not_found");
+    if (res.status === 403) throw new Error("org_forbidden");
+    if (!res.ok) throw new Error(`GitHub org members failed (${res.status})`);
+    const batch = (await res.json()) as Array<{ login: string }>;
+    for (const m of batch) out.push(m.login);
+    if (batch.length < 100) break;
+    page++;
+    if (page > 50) break; // safety: 5k members
+  }
+  return out;
+}
+
+/** List team member logins. Requires read:org. */
+export async function listTeamMembers(
+  accessToken: string,
+  org: string,
+  team: string,
+): Promise<string[]> {
+  const out: string[] = [];
+  let page = 1;
+  for (;;) {
+    const res = await fetch(
+      `${GITHUB_API}/orgs/${encodeURIComponent(org)}/teams/${encodeURIComponent(team)}/members?per_page=100&page=${page}`,
+      { headers: ghHeaders(accessToken) },
+    );
+    if (res.status === 404) throw new Error("team_not_found");
+    if (res.status === 403) throw new Error("team_forbidden");
+    if (!res.ok) throw new Error(`GitHub team members failed (${res.status})`);
+    const batch = (await res.json()) as Array<{ login: string }>;
+    for (const m of batch) out.push(m.login);
+    if (batch.length < 100) break;
+    page++;
+    if (page > 50) break;
+  }
+  return out;
+}
+
+/** Best-effort public email for a login (often null). */
+export async function fetchPublicEmail(
+  accessToken: string,
+  login: string,
+): Promise<string | null> {
+  const res = await fetch(`${GITHUB_API}/users/${encodeURIComponent(login)}`, {
+    headers: ghHeaders(accessToken),
+  });
+  if (!res.ok) return null;
+  const u = (await res.json()) as { email?: string | null };
+  const e = (u.email ?? "").trim().toLowerCase();
+  return e.includes("@") ? e : null;
+}

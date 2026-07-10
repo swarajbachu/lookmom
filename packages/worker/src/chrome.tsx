@@ -857,9 +857,10 @@ export const GithubOrgTeamFields: FC<{
       {connectUrl ? <a href={connectUrl}>Manage GitHub</a> : null}
     </p>
     <p style="margin-top:8px;font-size:0.95rem">
-      <strong style="color:var(--ink)">Viewers sign in with GitHub</strong> — we check live
-      membership. We do <em>not</em> expand the org to email addresses. For email-only
-      share, use “Specific people”.
+      On save we <strong style="color:var(--ink)">sync members</strong> with your token
+      (usernames + public emails). Teammates can sign in with email when we have it, or
+      GitHub by username — they don’t each need to authorize the org OAuth app. Hidden
+      emails fall back to GitHub sign-in.
     </p>
     {listError ? <p class="err" style="margin-top:10px">{listError}</p> : null}
     {orgs.length === 0 && !listError ? (

@@ -8,7 +8,14 @@
  */
 import { Hono } from "hono";
 import type { AppContext, Env, Vars } from "../types";
-import { getArtifact, getVersion, isAllowed, getDb, getOwnerGithub } from "../db";
+import {
+  getArtifact,
+  getVersion,
+  isAllowed,
+  getDb,
+  getOwnerGithub,
+  isOnGithubShareRoster,
+} from "../db";
 import { artifactHeaders } from "../csp";
 import { signGrant, verifyGrant } from "../grants";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
@@ -59,7 +66,12 @@ viewRoutes.get("/a/:id", async (c) => {
           githubLoginUrl={
             art.shareMode === "github_team" ? githubLoginUrl : undefined
           }
-          teamShare={art.shareMode === "github_team"}
+          teamShare={false}
+          message={
+            art.shareMode === "github_team"
+              ? "Shared with a GitHub org. Try your work email first (if synced), or sign in with GitHub."
+              : undefined
+          }
         />,
       );
     }
@@ -80,46 +92,66 @@ viewRoutes.get("/a/:id", async (c) => {
       if (!isGithubTeamShareAvailable(c.env)) {
         return c.html(<GithubNotConfigured />);
       }
-      if (!viewer.githubLogin) {
-        return c.html(
-          <LoginPrompt
-            title={art.title}
-            loginUrl={loginUrl}
-            githubLoginUrl={githubLoginUrl}
-            teamShare
-            message="This artifact is shared with a GitHub organization. Sign in with GitHub so we can check membership."
-          />,
-        );
-      }
 
-      const result = await isGithubTeamMember(db, {
-        githubLogin: viewer.githubLogin,
-        org: art.githubOrg,
-        team: art.githubTeam,
-        accessToken: getGithubTokenCookie(c),
-      });
+      // 1) Email match from roster/allowlist (public emails synced by owner)
+      if (await isAllowed(db, id, viewer.email)) {
+        allowed = true;
+      } else if (
+        await isOnGithubShareRoster(db, id, {
+          email: viewer.email,
+          githubLogin: viewer.githubLogin,
+        })
+      ) {
+        // 2) On owner-synced roster (login or email)
+        allowed = true;
+      } else {
+        // 3) Live membership — prefer *owner* token so members don't need SAML'd app access
+        const ownerLink = await getOwnerGithub(db, art.ownerEmail);
+        const token =
+          ownerLink?.accessToken ?? getGithubTokenCookie(c) ?? undefined;
 
-      if (result.reason === "needs_github") {
-        return c.html(
-          <LoginPrompt
-            title={art.title}
-            loginUrl={loginUrl}
-            githubLoginUrl={githubLoginUrl}
-            teamShare
-            message="Your GitHub session expired. Sign in with GitHub again to refresh membership."
-          />,
-        );
+        if (!viewer.githubLogin) {
+          return c.html(
+            <LoginPrompt
+              title={art.title}
+              loginUrl={loginUrl}
+              githubLoginUrl={githubLoginUrl}
+              teamShare={false}
+              message="This is shared with a GitHub org. Sign in with your work email if the owner synced it, or with GitHub (username match / membership)."
+            />,
+          );
+        }
+
+        if (!token) {
+          return c.html(
+            <LoginPrompt
+              title={art.title}
+              loginUrl={loginUrl}
+              githubLoginUrl={githubLoginUrl}
+              teamShare
+              message="Sign in with GitHub to verify org membership (owner may need to re-sync members)."
+            />,
+          );
+        }
+
+        const result = await isGithubTeamMember(db, {
+          githubLogin: viewer.githubLogin,
+          org: art.githubOrg,
+          team: art.githubTeam,
+          accessToken: token,
+        });
+
+        if (result.reason === "error") {
+          return c.html(
+            <AccessDenied
+              email={viewer.email}
+              switchUrl={githubLoginUrl}
+              message="We couldn’t verify organization membership right now. Try again later."
+            />,
+          );
+        }
+        allowed = result.allowed;
       }
-      if (result.reason === "error") {
-        return c.html(
-          <AccessDenied
-            email={viewer.email}
-            switchUrl={githubLoginUrl}
-            message="We couldn’t verify your GitHub organization membership right now. Try again, or sign in with a different GitHub account."
-          />,
-        );
-      }
-      allowed = result.allowed;
     }
   }
 

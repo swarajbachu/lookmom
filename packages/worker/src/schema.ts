@@ -38,6 +38,22 @@ export const versions = sqliteTable(
   (t) => [index("idx_versions_artifact").on(t.artifactId, t.versionNo)],
 );
 
+export const githubShareRoster = sqliteTable(
+  "github_share_roster",
+  {
+    artifactId: text("artifact_id").notNull(),
+    githubLogin: text("github_login").notNull(),
+    /** Public or known email when available; may be null. */
+    email: text("email"),
+    syncedAt: integer("synced_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.artifactId, t.githubLogin] }),
+    index("idx_github_share_roster_artifact").on(t.artifactId),
+    index("idx_github_share_roster_email").on(t.artifactId, t.email),
+  ],
+);
+
 export const allowlist = sqliteTable(
   "allowlist",
   {
@@ -128,4 +144,5 @@ export type Artifact = InferSelectModel<typeof artifacts>;
 export type Version = InferSelectModel<typeof versions>;
 export type ShareMode = Artifact["shareMode"];
 export type OwnerGithub = InferSelectModel<typeof ownerGithub>;
+export type GithubShareRosterEntry = InferSelectModel<typeof githubShareRoster>;
 
