@@ -18,7 +18,7 @@ app.get("/", (c) => c.redirect("/gallery"));
 app.get("/healthz", (c) => c.json({ ok: true }));
 
 // Route groups.
-app.route("/", authRoutes); // /auth/login, /auth/callback, /auth/logout
+app.route("/", authRoutes); // /auth/*, /connect/github
 app.route("/", agentRoutes); // /auth.md, /.well-known/..., /agent/*, /oauth2/*
 app.route("/", publishRoutes); // /api/publish
 app.route("/", shareRoutes); // /gallery, /share/*

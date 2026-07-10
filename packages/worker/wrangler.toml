@@ -5,12 +5,14 @@ compatibility_flags = ["nodejs_compat"]
 
 # The app/auth origin. Artifact CONTENT is served from a separate cookieless
 # sandbox subdomain (ARTIFACT_SANDBOX_HOST) so artifact JS can never read the
-# auth session cookie. In local dev both are localhost with different ports
-# handled by the CLI preview; in prod set these as vars/routes.
+# auth session cookie.
+#
+# For local `wrangler dev`, override these three in .dev.vars back to
+# http://localhost:8787 so cookie/redirect hosts match localhost.
 [vars]
-APP_HOST = "http://localhost:8787"
-ARTIFACT_SANDBOX_HOST = "http://localhost:8787"
-WORKOS_REDIRECT_URI = "http://localhost:8787/auth/callback"
+APP_HOST = "https://lookmom.stuff.md"
+ARTIFACT_SANDBOX_HOST = "https://lookmomcontent.stuff.md"
+WORKOS_REDIRECT_URI = "https://lookmom.stuff.md/auth/callback"
 # Comma-separated emails always allowed to view (bootstrap/dev). Optional.
 DEV_ALLOWLIST = ""
 # WORKOS_CLIENT_ID is intentionally NOT set here so it comes only from
@@ -18,12 +20,17 @@ DEV_ALLOWLIST = ""
 # empty value here would shadow .dev.vars.
 
 # Secrets (set with `wrangler secret put`, or in .dev.vars for local):
-#   WORKOS_API_KEY, WORKOS_COOKIE_PASSWORD, JWT_SIGNING_SECRET
+#   WORKOS_API_KEY, JWT_SIGNING_SECRET
+# GitHub org share (preferred): enable GitHub OAuth in WorkOS with
+#   “Return GitHub OAuth tokens” + scopes read:user, user:email, read:org.
+# Optional fallback (direct GitHub OAuth App when WorkOS GitHub isn’t used):
+#   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+# Optional override: GITHUB_OAUTH_REDIRECT_URI (defaults to ${APP_HOST}/auth/github/callback)
 
 [[d1_databases]]
 binding = "DB"
 database_name = "lookmom-db"
-database_id = "local-dev-placeholder"
+database_id = "930041cb-89f6-4f2a-8b21-3925653ec677"
 migrations_dir = "migrations"
 
 [[r2_buckets]]

@@ -33,6 +33,18 @@ const STYLE = `
   input.code { font-size:20px; letter-spacing:3px; padding:12px 14px; width:100%;
     border:1px solid var(--line); border-radius:9px; background:var(--bg);
     color:var(--fg); text-align:center; text-transform:uppercase; }
+  input.text { font-size:15px; padding:10px 12px; width:100%;
+    border:1px solid var(--line); border-radius:9px; background:var(--bg);
+    color:var(--fg); }
+  label.field { display:block; margin:12px 0 0; font-size:14px; color:var(--muted); }
+  label.share-opt { display:flex; gap:12px; align-items:flex-start; margin:12px 0;
+    cursor:pointer; }
+  label.share-opt input { margin-top:4px; }
+  label.share-opt strong { display:block; color:var(--fg); font-weight:600; }
+  label.share-opt .hint { display:block; font-size:13px; color:var(--muted); margin-top:2px; }
+  .callout { padding:14px; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); }
+  .callout a { color:var(--accent); }
   header.bar { display:flex; align-items:center; justify-content:space-between;
     padding:12px 20px; border-bottom:1px solid var(--line); background:var(--card); }
   header.bar .title { font-weight:600; }
@@ -50,35 +62,80 @@ export const Layout: FC<PropsWithChildren<{ title: string }>> = ({ title, childr
   </html>
 );
 
-export const LoginPrompt: FC<{ title: string; loginUrl: string }> = ({ title, loginUrl }) => (
+export const LoginPrompt: FC<{
+  title: string;
+  loginUrl: string;
+  githubLoginUrl?: string;
+  teamShare?: boolean;
+  message?: string;
+}> = ({ title, loginUrl, githubLoginUrl, teamShare, message }) => (
   <Layout title="Sign in">
     <div class="wrap">
       <div class="card">
         <h1>Sign in to view</h1>
         <p>
-          “{title}” is a private artifact. Sign in to check whether you have access.
+          {message ??
+            (teamShare
+              ? `“${title}” is shared with a GitHub team. Sign in with GitHub to check membership.`
+              : `“${title}” is a private artifact. Sign in to check whether you have access.`)}
         </p>
-        <a class="btn" href={loginUrl}>
-          Sign in
+        <div class="row">
+          {githubLoginUrl ? (
+            <a class="btn" href={githubLoginUrl}>
+              Sign in with GitHub
+            </a>
+          ) : null}
+          {!teamShare || !githubLoginUrl ? (
+            <a class={githubLoginUrl ? "btn secondary" : "btn"} href={loginUrl}>
+              Sign in
+            </a>
+          ) : (
+            <a class="btn secondary" href={loginUrl}>
+              Other sign-in
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  </Layout>
+);
+
+export const AccessDenied: FC<{
+  email: string;
+  switchUrl: string;
+  message?: string;
+}> = ({ email, switchUrl, message }) => (
+  <Layout title="No access">
+    <div class="wrap">
+      <div class="card">
+        <h1>You don’t have access</h1>
+        <p>
+          {message ??
+            `You’re signed in as ${email}, which isn’t on this artifact’s allowlist. Ask the owner to add you, or sign in with a different account.`}
+        </p>
+        <p>
+          Account: <span class="mono">{email}</span>
+        </p>
+        <a class="btn secondary" href={switchUrl}>
+          Use a different account
         </a>
       </div>
     </div>
   </Layout>
 );
 
-export const AccessDenied: FC<{ email: string; switchUrl: string }> = ({ email, switchUrl }) => (
-  <Layout title="No access">
+export const GithubNotConfigured: FC = () => (
+  <Layout title="GitHub not configured">
     <div class="wrap">
       <div class="card">
-        <h1>You don’t have access</h1>
+        <h1>GitHub team share unavailable</h1>
         <p>
-          You’re signed in as <span class="mono">{email}</span>, which isn’t on this
-          artifact’s allowlist. Ask the owner to add you, or sign in with a different
-          account.
+          This artifact is shared with a GitHub organization, but this lookmom
+          instance has no GitHub login configured. The operator needs WorkOS
+          with GitHub OAuth (return tokens + <span class="mono">read:org</span>
+          ), or <span class="mono">GITHUB_CLIENT_ID</span> /{" "}
+          <span class="mono">GITHUB_CLIENT_SECRET</span>.
         </p>
-        <a class="btn secondary" href={switchUrl}>
-          Use a different account
-        </a>
       </div>
     </div>
   </Layout>
@@ -112,27 +169,54 @@ export const ArtifactFrame: FC<{
   </Layout>
 );
 
-export const Gallery: FC<{ email: string; artifacts: Artifact[]; host: string }> = ({
-  email,
-  artifacts,
-  host,
-}) => (
+export const Gallery: FC<{
+  email: string;
+  artifacts: Artifact[];
+  host: string;
+  githubLogin?: string;
+}> = ({ email, artifacts, host, githubLogin }) => (
   <Layout title="Your artifacts">
     <div class="wrap">
       <div class="card">
-        <h1>Your artifacts</h1>
-        <p>
-          Signed in as <span class="mono">{email}</span>
-        </p>
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <h1>Your artifacts</h1>
+            <p style="margin-bottom:0">
+              Signed in as <span class="mono">{email}</span>
+              {githubLogin ? (
+                <>
+                  {" "}
+                  · GitHub <span class="mono">@{githubLogin}</span>
+                </>
+              ) : null}
+            </p>
+          </div>
+          <a class="btn secondary" href="/connect/github?return_to=/gallery">
+            {githubLogin ? "GitHub" : "Connect GitHub"}
+          </a>
+        </div>
         {artifacts.length === 0 ? (
-          <p>Nothing published yet. Use the CLI: <span class="mono">lookmom publish</span>.</p>
+          <p style="margin-top:20px">
+            Nothing published yet. Use the CLI: <span class="mono">lookmom publish</span>.
+          </p>
         ) : (
           <ul class="list">
             {artifacts.map((a) => (
               <li class="item">
                 <span>{a.emoji}</span>
                 <a href={`${host}/a/${a.id}`}>{a.title}</a>
-                <span class="badge">{a.shareMode}</span>
+                <a class="badge" href={`${host}/share/${a.id}`}>
+                  {a.shareMode === "github_team"
+                    ? "org"
+                    : a.shareMode === "allowlist"
+                      ? "emails"
+                      : a.shareMode}
+                </a>
+                {a.shareMode === "github_team" && a.githubOrg ? (
+                  <span class="badge">
+                    {a.githubTeam ? `${a.githubOrg}/${a.githubTeam}` : a.githubOrg}
+                  </span>
+                ) : null}
                 <span class="badge">v{a.currentVersion}</span>
               </li>
             ))}

@@ -1,5 +1,5 @@
 /** Drizzle schema for D1. Metadata + access control only; blobs live in R2. */
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, primaryKey } from "drizzle-orm/sqlite-core";
 import type { InferSelectModel } from "drizzle-orm";
 
 export const artifacts = sqliteTable(
@@ -10,9 +10,15 @@ export const artifacts = sqliteTable(
     title: text("title").notNull().default("Untitled artifact"),
     emoji: text("emoji").notNull().default("📄"),
     currentVersion: integer("current_version").notNull().default(0),
-    shareMode: text("share_mode", { enum: ["private", "allowlist", "public"] })
+    shareMode: text("share_mode", {
+      enum: ["private", "allowlist", "public", "github_team"],
+    })
       .notNull()
       .default("private"),
+    /** GitHub org slug when shareMode is github_team. */
+    githubOrg: text("github_org"),
+    /** Optional team slug within the org; null/empty = any org member. */
+    githubTeam: text("github_team"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
@@ -40,6 +46,20 @@ export const allowlist = sqliteTable(
     addedAt: integer("added_at").notNull(),
   },
   (t) => [index("idx_allowlist_artifact").on(t.artifactId)],
+);
+
+/** Short-lived cache of GitHub org/team membership checks. */
+export const githubMembershipCache = sqliteTable(
+  "github_membership_cache",
+  {
+    githubLogin: text("github_login").notNull(),
+    org: text("org").notNull(),
+    /** Empty string means org-level membership (any member of the org). */
+    team: text("team").notNull().default(""),
+    isMember: integer("is_member").notNull(),
+    checkedAt: integer("checked_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.githubLogin, t.org, t.team] })],
 );
 
 export const agentTokens = sqliteTable(

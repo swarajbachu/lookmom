@@ -6,10 +6,10 @@ description: Write a self-contained HTML artifact and publish it to a private, a
 # lookmom — publish HTML artifacts
 
 An **artifact** is a single self-contained HTML page published to a private URL
-(`https://<host>/a/<id>`) that the user can share with specific people. You build the
-page, then publish it with the `lookmom` CLI. This is the right tool when the output is
-easier to *look at* than to read as text: dashboards, annotated diffs, charts, side-by-side
-options, interactive tuners, status pages.
+(`https://lookmom.stuff.md/a/<id>` by default) that the user can share with specific
+people. You build the page, then publish it with the `lookmom` CLI. This is the right
+tool when the output is easier to *look at* than to read as text: dashboards, annotated
+diffs, charts, side-by-side options, interactive tuners, status pages.
 
 ## When to use
 
@@ -61,22 +61,45 @@ encouraged where they help — they run fine inline.
    - On the **first publish ever**, the CLI prints a code and opens the browser for the user
      to authorize (one time). Tell the user to complete that sign-in; then publishing is
      silent.
-   - It prints the URL, e.g. `https://<host>/a/pIewXqNLkEVCVMFCgEo37g`. **Give that URL to
-     the user.**
+   - It prints the URL, e.g. `https://lookmom.stuff.md/a/pIewXqNLkEVCVMFCgEo37g`. **Give
+     that URL to the user.**
    - New artifacts are **private** by default (only the owner can view).
 
-4. **Share** (only if the user wants others to see it):
+4. **Share** (only if the user wants others to see it). Prefer the **Share** button on the
+   artifact page (top bar), or the CLI:
+
+   | Who can view | How |
+   | --- | --- |
+   | Specific emails | Share UI → “Specific people”, or `lookmom share <id> --email a@b` |
+   | Anyone with the link | Share UI → “Anyone”, or `lookmom share <id> --mode public` |
+   | GitHub org / team | See **GitHub organization members** below |
+
+### GitHub organization members
+
+Use this only when the user wants to share with people in a GitHub org (or team).
+
+1. **Connect GitHub first (human step).** Tell the user to open:
+   **https://lookmom.stuff.md/connect/github**  
+   (also linked from Share when “GitHub organization members” is selected, and from the
+   gallery). They complete that page so lookmom can verify org membership (`read:org`).
+   Do **not** try to complete GitHub OAuth yourself — route the human to that page and wait.
+
+2. **Set org / team** via Share UI, or:
    ```bash
-   lookmom share <id|url> --email teammate@example.com     # adds to allowlist
-   lookmom share <id|url> --mode public                    # anyone with the link
+   lookmom share <id|url> --github-org acme --github-team eng
    ```
+   Omit `--github-team` to allow any member of the org.
+
+3. **Viewers** of org-shared links sign in with GitHub; membership is checked live.
+
+Email allowlist and public share do **not** require Connect GitHub.
 
 ## Updating an existing artifact
 
 To revise a page the user already published, edit the file and republish to the **same URL**
 with `--update`:
 ```bash
-lookmom publish artifact.html --update https://<host>/a/<id>
+lookmom publish artifact.html --update https://lookmom.stuff.md/a/<id>
 ```
 Each publish becomes a new version at the same URL. If the user gives you an artifact URL and
 asks to change it, always use `--update <url>` — otherwise you'll create a brand-new artifact.
@@ -87,10 +110,17 @@ asks to change it, always use `--update <url>` — otherwise you'll create a bra
 lookmom list                 # the user's artifacts + URLs
 lookmom whoami               # login status
 lookmom login                # (re)authorize this device
+lookmom share <id> --email a@b
+lookmom share <id> --mode public
+lookmom share <id> --github-org acme [--github-team eng]
 ```
 
 ## Prerequisites
 
-The `lookmom` CLI must be installed and pointed at a lookmom instance. If the command isn't
-found, the user needs to set it up — see the project README. The instance URL defaults to
-`http://localhost:8787`; a deployed instance is set via `--api <url>` or `$LOOKMOM_API_URL`.
+The `lookmom` CLI must be installed and pointed at a lookmom instance.
+
+- Production default host: `https://lookmom.stuff.md`
+- Local default: `http://localhost:8787`
+- Override with `--api <url>` or `$LOOKMOM_API_URL`
+
+If the command isn’t found, the user needs to set it up — see the project README.

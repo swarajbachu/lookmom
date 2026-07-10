@@ -36,7 +36,7 @@ A lookmom **artifact** is a single, self-contained HTML page — all CSS, JavaSc
 Three things make it useful:
 
 1. **Agents publish directly.** A CLI (`lookmom`) plus a skill let Claude write a page and publish it without you copy-pasting anything.
-2. **Real access control.** Every artifact is `private` (only you), `allowlist` (only the emails you name), or `public`. Viewers sign in with Google or a magic link.
+2. **Real access control.** Every artifact is `private` (only you), `allowlist` (only the emails you name), `github_team` (current members of a GitHub org/team), or `public`. Viewers sign in with Google, a magic link, or GitHub (for team-shared artifacts).
 3. **It's free.** Cloudflare Workers + D1 + R2 + WorkOS all have generous free tiers; a personal instance costs **$0**.
 
 ---
@@ -83,15 +83,21 @@ bun install
 cd packages/worker
 bunx wrangler d1 migrations apply lookmom-db --local
 
-# run the Worker (local D1 + R2)
+# run the Worker (local D1 + R2).
+# wrangler.toml has production hosts; override for local in .dev.vars:
+#   APP_HOST / ARTIFACT_SANDBOX_HOST / WORKOS_REDIRECT_URI = http://localhost:8787
 bunx wrangler dev --port 8787 --local
 ```
 
 Out of the box (no WorkOS keys) the login page is a **dev form** that accepts any email — enough to test the whole gate. To use real WorkOS login, drop your keys into `packages/worker/.dev.vars`:
 
 ```
+APP_HOST="http://localhost:8787"
+ARTIFACT_SANDBOX_HOST="http://localhost:8787"
+WORKOS_REDIRECT_URI="http://localhost:8787/auth/callback"
 WORKOS_CLIENT_ID="client_..."
 WORKOS_API_KEY="sk_test_..."
+JWT_SIGNING_SECRET="dev-secret"
 ```
 
 …then register `http://localhost:8787/auth/callback` as a redirect URI in the WorkOS dashboard and restart. The Worker switches to WorkOS automatically once both keys are present.
@@ -111,7 +117,7 @@ bun run packages/cli/src/cli.ts <command>
 | `lookmom login` | Authorize this device (auth.md OTP flow). Token cached in `~/.lookmom/`. |
 | `lookmom preview <file>` | Serve a file locally under the **exact production CSP** + live-reload. |
 | `lookmom publish <file>` | Publish (or `--update <id\|url>`) an artifact. `--title --emoji --share`. |
-| `lookmom share <id\|url>` | Manage access: `--email a@b` (repeatable), `--mode private\|allowlist\|public`. |
+| `lookmom share <id\|url>` | Manage access: `--email a@b`, `--mode private\|allowlist\|public\|github_team`, `--github-org`, `--github-team`. |
 | `lookmom list` | List your artifacts. |
 | `lookmom logout` | Revoke the token and forget it. |
 
@@ -182,15 +188,24 @@ You can't just hit the sandbox host directly. `/raw/<id>` refuses to serve anyth
 
 So a direct visit to the sandbox with no grant → `403`. A leaked grant URL is useless after 30s and only ever exposed content the holder was already allowed to see. Artifact IDs are 128-bit random on top, so enumeration is hopeless.
 
-### 4. Access control: private / allowlist / public
+### 4. Access control: private / allowlist / github_team / public
 
-Every artifact has an owner and a share mode, enforced at the gate on every request:
+Every artifact has an owner and a share mode, enforced at the gate on every request. Owners use the **Share** button on the artifact chrome (or the CLI):
 
 - **private** — only the owner.
-- **allowlist** — the owner plus the exact emails in the artifact's allowlist (checked against the signed-in email).
-- **public** — anyone, but still routed through the gate (one consistent code path).
+- **allowlist** — specific emails (checked against the signed-in email).
+- **github_team** — members of a GitHub organization (or a team within it).
+- **public** — anyone with the link.
 
-Viewer identity comes from **WorkOS-verified login** (Google or magic link), so "this email is allowed" means a real, verified email.
+**Connect GitHub** (`/connect/github`) is a separate page used **only for org share**. Owners connect once (WorkOS GitHub OAuth with return tokens + `read:org`). Viewers of org-shared links sign in with GitHub; membership is checked live via the GitHub API and cached briefly (~15 minutes). Email and public share do not require Connect GitHub.
+
+```bash
+# Share with everyone in the acme org (after Connect GitHub in the UI):
+lookmom share <id> --mode github_team --github-org acme
+
+# Or only the eng team:
+lookmom share <id> --github-org acme --github-team eng
+```
 
 ### 5. Publisher authentication: the auth.md OTP flow
 
@@ -229,7 +244,7 @@ Being honest about the boundaries:
 | Compute / API | Cloudflare **Workers** (Hono) | 100k req/day |
 | Database | **D1** via Drizzle (metadata + allowlist) | 5M reads / 100k writes per day |
 | Blob storage | **R2** (the HTML, no egress fees) | 10 GB |
-| Identity | **WorkOS AuthKit** (Google + magic link) | 1M monthly active users |
+| Identity | **WorkOS** (AuthKit + GitHub OAuth for org share) | 1M monthly active users |
 | Monorepo / runtime | **Turborepo + Bun** | — |
 | Chrome UI | server-rendered **Hono JSX** (no FE framework) | — |
 
@@ -241,13 +256,19 @@ A personal instance comfortably stays at **$0**.
 
 1. Create the resources: `wrangler d1 create lookmom-db`, `wrangler r2 bucket create lookmom-blobs`, and put their IDs in `wrangler.toml`.
 2. Set secrets: `wrangler secret put WORKOS_API_KEY`, `wrangler secret put JWT_SIGNING_SECRET`.
-3. Set the two hosts as vars/routes — the app host and a **sibling** sandbox host:
+3. **(Optional, for GitHub org share)** In the WorkOS dashboard, enable **GitHub OAuth**, use your own GitHub OAuth App credentials, turn on **Return GitHub OAuth tokens**, and add scopes `read:user`, `user:email`, `read:org`. GitHub’s callback URL must be the WorkOS redirect URI from the dashboard (not lookmom’s).  
+   Fallback (no WorkOS GitHub): set a [GitHub OAuth App](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) callback to `https://lookmom.stuff.md/auth/github/callback`, then:
+   ```
+   wrangler secret put GITHUB_CLIENT_ID
+   wrangler secret put GITHUB_CLIENT_SECRET
+   ```
+4. Set the two hosts as vars/routes — the app host and a **sibling** sandbox host:
    ```
    APP_HOST = "https://lookmom.stuff.md"
    ARTIFACT_SANDBOX_HOST = "https://lookmomcontent.stuff.md"
    WORKOS_REDIRECT_URI = "https://lookmom.stuff.md/auth/callback"
    ```
-4. Register both custom domains on the Worker, add the redirect URI in WorkOS, and `bun run deploy`.
+5. Register both custom domains on the Worker, add the lookmom redirect URI in WorkOS, and `bun run deploy`.
 
 > The sandbox host **must** be a separate site from the app host (see [Security §1](#1-artifacts-run-on-a-separate-cookieless-origin-the-sandbox)). Do not serve artifacts from a subdomain of the app host.
 

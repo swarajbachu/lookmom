@@ -6,12 +6,14 @@
   "workspaces": [
     "packages/*"
   ],
+  "packageManager": "bun@1.3.0",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "typecheck": "turbo run typecheck",
-    "deploy": "turbo run deploy --filter=@lookmom/worker",
-    "db:generate": "turbo run db:generate --filter=@lookmom/worker"
+    "typecheck": "bun run --filter '*' typecheck",
+    "deploy": "bun run --filter @lookmom/worker deploy",
+    "db:generate": "bun run --filter @lookmom/worker db:generate",
+    "db:migrate:remote": "bun run --filter @lookmom/worker db:migrate:remote"
   },
   "devDependencies": {
     "turbo": "^2.10.0"
