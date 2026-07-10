@@ -36,7 +36,7 @@ import {
 } from "../db";
 import { enforce, RateLimited, clientIp } from "../ratelimit";
 import { now, randomId, sha256Hex } from "../util";
-import { Layout } from "../chrome";
+import { SketchShell } from "../chrome";
 
 const OAUTH_COOKIE = "lookmom_oauth";
 const GITHUB_OAUTH_COOKIE = "lookmom_gh_oauth";
@@ -82,26 +82,20 @@ export const authRoutes = new Hono<{ Bindings: Env; Variables: Vars }>();
 authRoutes.get("/connect/github/cli", async (c) => {
   if (!isWorkosConfigured(c.env)) {
     return c.html(
-      <Layout title="WorkOS required">
-        <div class="wrap">
-          <div class="card">
+      <SketchShell title="WorkOS required" kicker="setup" navRight="gallery">
             <h1>WorkOS required</h1>
             <p>
               CLI GitHub connect goes through WorkOS GitHub OAuth (return tokens +{" "}
               <span class="mono">read:org</span>). Configure WorkOS on this instance.
             </p>
-          </div>
-        </div>
-      </Layout>,
+          </SketchShell>,
     );
   }
 
   const code = (c.req.query("code") ?? "").trim().toUpperCase();
   if (!code) {
     return c.html(
-      <Layout title="Connect GitHub (CLI)">
-        <div class="wrap">
-          <div class="card">
+      <SketchShell title="Connect GitHub (CLI)" kicker="cli" navRight="gallery">
             <h1>Connect GitHub for your agent</h1>
             <p>Enter the code your agent showed you.</p>
             <form method="get" action="/connect/github/cli">
@@ -112,9 +106,7 @@ authRoutes.get("/connect/github/cli", async (c) => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      </Layout>,
+          </SketchShell>,
     );
   }
 
@@ -122,14 +114,10 @@ authRoutes.get("/connect/github/cli", async (c) => {
   const claim = await findGithubCliClaimByCodeHash(db, await sha256Hex(code));
   if (!claim || claim.status !== "pending" || claim.expiresAt < now()) {
     return c.html(
-      <Layout title="Invalid code">
-        <div class="wrap">
-          <div class="card">
+      <SketchShell title="Invalid code" kicker="oops" navRight="gallery">
             <h1>Invalid or expired code</h1>
             <p>Ask your agent to run <span class="mono">lookmom github login</span> again.</p>
-          </div>
-        </div>
-      </Layout>,
+          </SketchShell>,
     );
   }
 
@@ -155,10 +143,8 @@ authRoutes.get("/connect/github/cli", async (c) => {
 authRoutes.get("/connect/github/cli/done", (c) => {
   const login = c.req.query("login");
   return c.html(
-    <Layout title="GitHub connected">
-      <div class="wrap">
-        <div class="card">
-          <h1>GitHub connected</h1>
+    <SketchShell title="GitHub connected" kicker="nice" navRight="gallery">
+            <h1>GitHub connected</h1>
           <p class="ok">
             {login ? (
               <>
@@ -169,9 +155,7 @@ authRoutes.get("/connect/github/cli/done", (c) => {
             )}{" "}
             You can return to your agent — it can list orgs and share now.
           </p>
-        </div>
-      </div>
-    </Layout>,
+          </SketchShell>,
   );
 });
 
@@ -193,10 +177,8 @@ authRoutes.get("/connect/github", async (c) => {
   const connected = !!viewer.githubLogin;
 
   return c.html(
-    <Layout title="Connect GitHub">
-      <div class="wrap">
-        <div class="card">
-          <h1>Connect GitHub</h1>
+    <SketchShell title="Connect GitHub" kicker="team share" navRight="gallery">
+            <h1>Connect GitHub</h1>
           <p>
             Connect your GitHub account to share artifacts with organization or
             team members. We request <span class="mono">read:org</span> so we
@@ -255,9 +237,7 @@ authRoutes.get("/connect/github", async (c) => {
           <p style="margin-top:24px;font-size:13px">
             Signed in as <span class="mono">{viewer.email}</span>
           </p>
-        </div>
-      </div>
-    </Layout>,
+          </SketchShell>,
   );
 });
 
@@ -311,10 +291,7 @@ authRoutes.get("/auth/login", async (c) => {
 
     /* LOCAL DEV LOGIN FORM — uncomment when SKIP_LOCAL_DEV_LOGIN_FORM is false
     return c.html(
-      <Layout title="Dev sign in">
-        <div class="wrap">
-          <div class="card">
-            <p class="kicker">Local</p>
+      <SketchShell title="Dev sign in" kicker="local" navRight="gallery">
             <h1>Dev sign in</h1>
             <p>WorkOS isn’t configured. Enter any email to simulate a session.</p>
             <form method="post" action="/auth/dev-login">
@@ -333,9 +310,7 @@ authRoutes.get("/auth/login", async (c) => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      </Layout>,
+          </SketchShell>,
     );
     */
   }
@@ -414,18 +389,14 @@ authRoutes.get("/auth/callback", async (c) => {
     if (parsed.purpose === "cli_github") {
       if (!ghToken || !githubLogin || !parsed.cliClaimId || !parsed.cliOwnerEmail) {
         return c.html(
-          <Layout title="GitHub connect failed">
-            <div class="wrap">
-              <div class="card">
-                <h1>GitHub token missing</h1>
+          <SketchShell title="GitHub connect failed" kicker="uh oh" navRight="gallery">
+            <h1>GitHub token missing</h1>
                 <p>
                   WorkOS signed you in but did not return a GitHub access token. In the
                   WorkOS dashboard enable <strong>Return GitHub OAuth tokens</strong> and
                   scopes <span class="mono">read:user user:email read:org</span>.
                 </p>
-              </div>
-            </div>
-          </Layout>,
+          </SketchShell>,
         );
       }
       const db = getDb(c.env.DB);
@@ -495,9 +466,7 @@ authRoutes.get("/auth/github", async (c) => {
 
   if (!isGithubTeamShareAvailable(c.env)) {
     return c.html(
-      <Layout title="GitHub not configured">
-        <div class="wrap">
-          <div class="card">
+      <SketchShell title="GitHub not configured" kicker="setup" navRight="gallery">
             <h1>GitHub login not configured</h1>
             <p>
               Enable GitHub OAuth in WorkOS (with return tokens +{" "}
@@ -508,9 +477,7 @@ authRoutes.get("/auth/github", async (c) => {
             <a class="btn secondary" href="/gallery">
               Back
             </a>
-          </div>
-        </div>
-      </Layout>,
+          </SketchShell>,
     );
   }
 

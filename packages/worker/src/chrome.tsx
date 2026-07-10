@@ -51,7 +51,7 @@ const STYLE = `${HAND_FONT_FACE}
   body {
     margin: 0;
     min-height: 100%;
-    font: 18px/1.45 var(--font);
+    font: 19px/1.5 var(--font);
     color: var(--fg);
     background-color: var(--bg);
     background-image:
@@ -224,18 +224,19 @@ const STYLE = `${HAND_FONT_FACE}
     align-items: center;
     justify-content: center;
     gap: 7px;
-    min-height: 38px;
-    padding: 0 14px;
-    border-radius: 255px 14px 225px 14px / 14px 225px 14px 255px;
-    font: inherit;
-    font-size: 1.05rem;
-    font-weight: 400;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 255px 16px 225px 16px / 16px 225px 16px 255px;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     border: 2.5px solid var(--ink);
     cursor: pointer;
     text-decoration: none !important;
     background: var(--accent);
     color: var(--accent-fg);
-    box-shadow: 2px 3px 0 var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
     transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) ease, background var(--dur) ease;
   }
   .btn:hover {
@@ -251,16 +252,21 @@ const STYLE = `${HAND_FONT_FACE}
     outline-offset: 3px;
   }
   .btn.secondary {
-    background: var(--bg-elevated);
+    background: #fffef8;
     color: var(--ink);
   }
   .btn.secondary:hover { background: #eef5e8; color: var(--ink); }
+  .btn.secondary:nth-of-type(even) {
+    border-radius: 16px 255px 16px 225px / 225px 16px 255px 16px;
+  }
   .btn.ghost {
     background: transparent;
     color: var(--muted);
     box-shadow: none;
-    border-color: transparent;
-    min-height: 34px;
+    border: 2px dashed transparent;
+    min-height: 36px;
+    font-family: var(--font-display);
+    font-weight: 700;
   }
   .btn.ghost:hover {
     color: var(--ink);
@@ -445,8 +451,8 @@ const STYLE = `${HAND_FONT_FACE}
     box-shadow: 3px 3px 0 var(--ink);
   }
   input.text, textarea.text {
-    font: inherit;
-    font-size: 1.05rem;
+    font-family: var(--font);
+    font-size: 1.1rem;
     padding: 10px 12px;
     width: 100%;
     border: 2.5px solid var(--ink);
@@ -686,7 +692,7 @@ export const Layout: FC<
   </html>
 );
 
-function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
+export function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
   return (
     <header class="nav">
       <a class="nav-brand" href="/gallery">
@@ -705,6 +711,28 @@ function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
   );
 }
 
+
+/** Shared hand-drawn page shell for auth / system screens. */
+export const SketchShell: FC<
+  PropsWithChildren<{
+    title: string;
+    kicker?: string;
+    email?: string;
+    navRight?: "gallery" | "none";
+    wide?: boolean;
+  }>
+> = ({ title, kicker, email, navRight, wide, children }) => (
+  <Layout title={title}>
+    <AppNav email={email} right={navRight} />
+    <main class={wide ? "shell-main" : "shell-main narrow"}>
+      <div class="card">
+        {kicker ? <p class="kicker">{kicker}</p> : null}
+        {children}
+      </div>
+    </main>
+  </Layout>
+);
+
 export const LoginPrompt: FC<{
   title: string;
   loginUrl: string;
@@ -712,11 +740,7 @@ export const LoginPrompt: FC<{
   teamShare?: boolean;
   message?: string;
 }> = ({ title, loginUrl, githubLoginUrl, teamShare, message }) => (
-  <Layout title="Sign in · lookmom">
-    <AppNav />
-    <main class="shell-main narrow">
-      <div class="card">
-        <p class="kicker">Private artifact</p>
+  <SketchShell title="Sign in · lookmom" kicker="psst… private">
         <h1>Sign in to view</h1>
         <p style="margin-top:8px">
           {message ??
@@ -740,9 +764,7 @@ export const LoginPrompt: FC<{
             </a>
           )}
         </div>
-      </div>
-    </main>
-  </Layout>
+  </SketchShell>
 );
 
 export const AccessDenied: FC<{
@@ -750,11 +772,7 @@ export const AccessDenied: FC<{
   switchUrl: string;
   message?: string;
 }> = ({ email, switchUrl, message }) => (
-  <Layout title="No access · lookmom">
-    <AppNav email={email} />
-    <main class="shell-main narrow">
-      <div class="card">
-        <p class="kicker">Access</p>
+  <SketchShell title="No access · lookmom" kicker="whoops" email={email}>
         <h1>You don’t have access</h1>
         <p style="margin-top:8px">
           {message ??
@@ -766,17 +784,11 @@ export const AccessDenied: FC<{
         <a class="btn secondary" href={switchUrl}>
           Use a different account
         </a>
-      </div>
-    </main>
-  </Layout>
+  </SketchShell>
 );
 
 export const GithubNotConfigured: FC = () => (
-  <Layout title="GitHub not configured · lookmom">
-    <AppNav />
-    <main class="shell-main narrow">
-      <div class="card">
-        <p class="kicker">Configuration</p>
+  <SketchShell title="GitHub not configured · lookmom" kicker="setup" navRight="gallery">
         <h1>GitHub share unavailable</h1>
         <p style="margin-top:8px">
           This artifact is shared with a GitHub organization, but this lookmom
@@ -785,9 +797,7 @@ export const GithubNotConfigured: FC = () => (
           ), or <span class="mono">GITHUB_CLIENT_ID</span> /{" "}
           <span class="mono">GITHUB_CLIENT_SECRET</span>.
         </p>
-      </div>
-    </main>
-  </Layout>
+  </SketchShell>
 );
 
 function shareModeLabel(mode: string): string {
@@ -859,7 +869,7 @@ export const ArtifactFrame: FC<{
         <dialog class="modal" id="share-dialog" aria-labelledby="share-dialog-title">
           <div class="modal-head">
             <div>
-              <p class="kicker" style="margin:0">Share</p>
+              <p class="kicker" style="margin:0">pass it on</p>
               <h2 id="share-dialog-title">{title}</h2>
             </div>
             <button type="button" class="icon-btn" data-close-share aria-label="Close">
@@ -1050,7 +1060,7 @@ export const ConfirmAgent: FC<{
     <AppNav email={email} right="gallery" />
     <main class="shell-main narrow">
       <div class="card">
-        <p class="kicker">Device</p>
+        <p class="kicker">agent handshake</p>
         <h1>Authorize publishing</h1>
         {success ? (
           <p class="ok" style="margin-top:14px">
