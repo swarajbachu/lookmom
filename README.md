@@ -2,16 +2,25 @@
 
 > *"Look mom, I built a website."*
 
-**lookmom** is a free, self-hostable clone of Claude's **Artifacts** feature — the one that's locked to Team/Enterprise plans. It lets an AI agent (or you) publish a self-contained HTML page to a **private, access-controlled URL** that you can share with exactly the people you choose.
+**lookmom** is a **Claude Artifacts alternative** — free, open source, and built for **every agent** (Claude, Cursor, Codex, or a plain terminal), not locked to one chat product or a Team/Enterprise plan.
 
-You ask Claude for a dashboard, a PR walkthrough, a chart, an interactive mockup — it writes the HTML, and `lookmom publish` puts it online behind real authentication in one step. Runs entirely on Cloudflare's free tier.
+Publish a self-contained HTML page to a **private, access-controlled URL**. Share with specific people, anyone with the link, or your **GitHub org / team** without buying enterprise seats. Self-host on Cloudflare’s free tier, or use the public instance at [lookmom.stuff.md](https://lookmom.stuff.md).
 
 ```
 You: "make me a dashboard of last week's signups as an artifact"
-Claude: writes dashboard.html → lookmom publish dashboard.html
+Agent: writes dashboard.html → lookmom publish dashboard.html
         → https://lookmom.stuff.md/a/pIewXqNLkEVCVMFCgEo37g
-You: lookmom share <id> --email teammate@acme.com
+You: lookmom share <id> --github-org acme
 ```
+
+### Why lookmom
+
+| | Claude Artifacts (Team/Enterprise) | lookmom |
+| --- | --- | --- |
+| Who can publish | Inside Claude, paid plans | Any agent + CLI |
+| Org / team share | Enterprise-shaped plans | GitHub org/team, free |
+| Open source | No | Yes (MIT) |
+| Self-host | No | Yes, Cloudflare free tier |
 
 ---
 
@@ -33,13 +42,13 @@ You: lookmom share <id> --email teammate@acme.com
 
 A lookmom **artifact** is a self-contained HTML page — all CSS, JavaScript, and images inlined, no external requests — published to a URL like `https://lookmom.stuff.md/a/<id>`. It's a *capture of work*, not a hosted app: no backend, no database at view-time, one page.
 
-You can author **one file** or a **multi-file project** (`index.html` + CSS/JS/partials). The CLI bundles local assets automatically so agents can keep code clean while the published page stays CSP-safe — closer to Claude Artifacts / Design workflows.
+You can author **one file** or a **multi-file project** (`index.html` + CSS/JS/partials). The CLI bundles local assets automatically so agents can keep code clean while the published page stays CSP-safe — the same *shape* as Claude Artifacts, without the plan wall.
 
 Three things make it useful:
 
-1. **Agents publish directly.** A CLI (`lookmom`) plus a skill let Claude write a page (or project folder) and publish it without you copy-pasting anything.
-2. **Real access control.** Every artifact is `private` (only you), `allowlist` (only the emails you name), `github_team` (current members of a GitHub org/team), or `public`. Viewers sign in with Google, a magic link, or GitHub (for team-shared artifacts).
-3. **It's free.** Cloudflare Workers + D1 + R2 + WorkOS all have generous free tiers; a personal instance costs **$0**.
+1. **Every agent can publish.** Paste a prompt, install the skill (`npx skills add swarajbachu/lookmom`), or use the CLI (`npm install -g lookmom`). Not Claude-only.
+2. **Real access control, easy team share.** Every artifact is `private`, `allowlist` (emails), `github_team` (current GitHub org/team members), or `public`. Org sharing does **not** require an enterprise plan.
+3. **Free & open source.** MIT license. Cloudflare Workers + D1 + R2 + WorkOS free tiers; a personal instance costs **$0**.
 
 ---
 

@@ -578,6 +578,176 @@ const STYLE = `${HAND_FONT_FACE}
     transform: rotate(-0.3deg);
   }
 
+  /* Landing */
+  .land-hero {
+    text-align: left;
+    margin-bottom: 22px;
+  }
+  .land-hero h1 {
+    font-size: clamp(2.1rem, 5vw, 2.9rem);
+    max-width: 14ch;
+    margin: 0 0 10px;
+  }
+  .land-hero .lede {
+    max-width: 36ch;
+    font-size: 1.15rem;
+    margin: 0;
+  }
+  .land-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 4px 12px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: #fff9e8;
+    box-shadow: 2px 2px 0 var(--ink);
+    font-size: 0.95rem;
+    color: var(--ink);
+    transform: rotate(-1deg);
+  }
+  .land-card {
+    background: var(--bg-elevated);
+    padding: 22px 20px 24px;
+    border: 2.5px solid var(--ink);
+    border-radius: 255px 28px 225px 28px / 28px 225px 28px 255px;
+    box-shadow: var(--shadow-md);
+  }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 18px;
+    padding: 0;
+    list-style: none;
+  }
+  .tab {
+    appearance: none;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 2.5px solid var(--ink);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(31, 48, 24, 0.1);
+  }
+  .tab[aria-selected="true"] {
+    background: var(--accent);
+    color: var(--accent-fg);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .tab:focus-visible {
+    outline: 3px dashed var(--accent-2);
+    outline-offset: 3px;
+  }
+  .tab-panel[hidden] { display: none; }
+  .tab-panel h2 {
+    font-size: 1.45rem;
+    margin: 0 0 8px;
+    transform: rotate(-0.4deg);
+  }
+  .tab-panel p { margin: 0 0 12px; max-width: none; }
+  .code-block {
+    position: relative;
+    margin: 0 0 14px;
+    padding: 14px 52px 14px 14px;
+    border: 2.5px solid var(--ink);
+    border-radius: 16px 22px 14px 20px / 20px 14px 22px 16px;
+    background: #1f3018;
+    color: #f3efe4;
+    box-shadow: 3px 3px 0 rgba(31, 48, 24, 0.18);
+    overflow-x: auto;
+  }
+  .code-block pre {
+    margin: 0;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .code-block .copy-cmd {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    min-height: 30px;
+    padding: 0 10px;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: 2px solid #f3efe4;
+    border-radius: 999px;
+    background: transparent;
+    color: #f3efe4;
+    cursor: pointer;
+  }
+  .code-block .copy-cmd:hover { background: rgba(243, 239, 228, 0.12); }
+  .land-ask {
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    border: 2px dashed var(--ink);
+    border-radius: 16px 24px 14px 22px / 22px 14px 24px 16px;
+    background: #f7fbf4;
+  }
+  .land-ask strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .land-ask p { margin: 0; color: var(--fg-2); max-width: none; }
+  .land-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 22px;
+  }
+  .land-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 18px;
+    font-size: 1rem;
+  }
+  .land-links a { color: var(--ink); }
+  .land-points {
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .land-points li {
+    display: grid;
+    gap: 2px;
+    padding: 12px 14px;
+    border: 2px solid var(--ink);
+    border-radius: 18px 28px 16px 24px / 24px 16px 28px 18px;
+    background: var(--bg-elevated);
+    box-shadow: 2px 2px 0 rgba(31, 48, 24, 0.1);
+  }
+  .land-points li:nth-child(even) {
+    border-radius: 28px 16px 24px 18px / 16px 28px 18px 24px;
+    transform: rotate(0.2deg);
+  }
+  .land-points strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--ink);
+  }
+  .land-points span {
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
   dialog.modal {
     border: 2.5px solid var(--ink);
     padding: 0;
@@ -713,19 +883,26 @@ export const Layout: FC<
   </html>
 );
 
-export function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
+export function AppNav(props: {
+  email?: string;
+  right?: "gallery" | "none";
+  /** Hide gallery/orgs CTAs on marketing home */
+  home?: boolean;
+}) {
   return (
     <header class="nav">
-      <a class="nav-brand" href="/gallery">
+      <a class="nav-brand" href="/">
         <img class="nav-mark" src={LOGO_DATA_URI} width={28} height={28} alt="lookmom" />
         lookmom
       </a>
       <div class="nav-actions">
         {props.email ? <span class="nav-meta mono">{props.email}</span> : null}
-        <a class="btn secondary sm" href="/orgs">
-          Orgs
-        </a>
-        {props.right === "gallery" ? (
+        {!props.home ? (
+          <a class="btn secondary sm" href="/orgs">
+            Orgs
+          </a>
+        ) : null}
+        {props.right === "gallery" || props.home ? (
           <a class="btn secondary sm" href="/gallery">
             Gallery
           </a>
@@ -734,11 +911,172 @@ export function AppNav(props: { email?: string; right?: "gallery" | "none" }) {
           <a class="btn secondary sm" href="/auth/logout">
             Log out
           </a>
-        ) : null}
+        ) : (
+          <a class="btn secondary sm" href="/auth/login?return_to=/gallery">
+            Sign in
+          </a>
+        )}
       </div>
     </header>
   );
 }
+
+const LANDING_TABS_SCRIPT = `
+(function () {
+  var root = document.querySelector("[data-landing-tabs]");
+  if (!root) return;
+  var tabs = Array.prototype.slice.call(root.querySelectorAll("[role=tab]"));
+  var panels = Array.prototype.slice.call(root.querySelectorAll("[role=tabpanel]"));
+  function select(id) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute("data-tab") === id;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+    });
+    panels.forEach(function (p) {
+      var on = p.getAttribute("data-panel") === id;
+      if (on) p.removeAttribute("hidden");
+      else p.setAttribute("hidden", "");
+    });
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () {
+      select(t.getAttribute("data-tab"));
+    });
+  });
+  root.querySelectorAll("[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = btn.getAttribute("data-copy") || "";
+      function done() {
+        var old = btn.textContent;
+        btn.textContent = "Copied";
+        setTimeout(function () { btn.textContent = old; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(function () {});
+      }
+    });
+  });
+})();
+`;
+
+/** Public marketing home — install without logging into the site. */
+export const Landing: FC<{ email?: string; host: string }> = ({ email, host }) => {
+  const agentPrompt = `Publish this as a lookmom artifact.
+
+1. Read ${host}/SKILL.md
+2. Install the CLI if needed, then lookmom login + lookmom publish
+3. Share with my GitHub org if I ask — no enterprise plan required`;
+
+  const skillCmd = "npx skills add swarajbachu/lookmom";
+  const npmCmd = "npm install -g lookmom";
+
+  return (
+    <Layout title="lookmom — Claude Artifacts for every agent">
+      <AppNav email={email} home />
+      <main class="shell-main">
+        <div class="land-hero">
+          <span class="land-pill">free · open source · no enterprise tax</span>
+          <h1>Claude Artifacts — for every agent.</h1>
+          <p class="lede">
+            Private HTML pages your AI publishes in one step. Share with your org or team without
+            a Team/Enterprise plan. Works with Claude, Cursor, Codex, and anything that can run a skill or CLI.
+          </p>
+        </div>
+
+        <div class="land-card" data-landing-tabs>
+          <p class="kicker">start here</p>
+          <h2 style="margin-bottom:14px;font-size:1.6rem">Pick one</h2>
+
+          <div class="tabs" role="tablist" aria-label="How to start">
+            <button class="tab" type="button" role="tab" id="tab-agent" data-tab="agent" aria-controls="panel-agent" aria-selected="true" tabindex={0}>
+              Agent
+            </button>
+            <button class="tab" type="button" role="tab" id="tab-skill" data-tab="skill" aria-controls="panel-skill" aria-selected="false" tabindex={-1}>
+              Skill
+            </button>
+            <button class="tab" type="button" role="tab" id="tab-npm" data-tab="npm" aria-controls="panel-npm" aria-selected="false" tabindex={-1}>
+              npm
+            </button>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-agent" data-panel="agent" aria-labelledby="tab-agent">
+            <h2>Paste this to your agent</h2>
+            <p>No install on this site. Copy the prompt, drop it in Claude / Cursor / Codex / whatever you use.</p>
+            <div class="code-block">
+              <button class="copy-cmd" type="button" data-copy={agentPrompt}>
+                Copy
+              </button>
+              <pre>{agentPrompt}</pre>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-skill" data-panel="skill" aria-labelledby="tab-skill" hidden>
+            <h2>Install the skill</h2>
+            <p>One command. Your agent learns how to design, pack, publish, and share.</p>
+            <div class="code-block">
+              <button class="copy-cmd" type="button" data-copy={skillCmd}>
+                Copy
+              </button>
+              <pre>{skillCmd}</pre>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-npm" data-panel="npm" aria-labelledby="tab-npm" hidden>
+            <h2>Install the CLI</h2>
+            <p>For the terminal only — then <span class="mono">lookmom login</span> and <span class="mono">lookmom publish</span>.</p>
+            <div class="code-block">
+              <button class="copy-cmd" type="button" data-copy={npmCmd}>
+                Copy
+              </button>
+              <pre>{npmCmd}</pre>
+            </div>
+          </div>
+        </div>
+
+        <ul class="land-points">
+          <li>
+            <strong>Artifacts without the lock-in</strong>
+            <span>Same idea as Claude Artifacts — private, shareable HTML — not stuck behind Enterprise.</span>
+          </li>
+          <li>
+            <strong>Every agent</strong>
+            <span>Skill + CLI. Claude, Cursor, Codex, or you in a shell.</span>
+          </li>
+          <li>
+            <strong>Org &amp; team share that just works</strong>
+            <span>GitHub org or team access without buying a plan for your whole company.</span>
+          </li>
+          <li>
+            <strong>Free &amp; open source</strong>
+            <span>MIT. Self-host on Cloudflare’s free tier, or use the public instance.</span>
+          </li>
+        </ul>
+
+        <div class="land-foot">
+          {email ? (
+            <a class="btn" href="/gallery">
+              Open gallery
+            </a>
+          ) : (
+            <a class="btn secondary" href="/auth/login?return_to=/gallery">
+              Sign in to gallery
+            </a>
+          )}
+          <a class="btn ghost" href="https://github.com/swarajbachu/lookmom">
+            GitHub →
+          </a>
+        </div>
+        <div class="land-links">
+          <a href="/SKILL.md">/SKILL.md</a>
+          <a href="https://www.npmjs.com/package/lookmom">npm lookmom</a>
+          <a href="https://github.com/swarajbachu/lookmom">source</a>
+        </div>
+      </main>
+      <script dangerouslySetInnerHTML={{ __html: LANDING_TABS_SCRIPT }} />
+    </Layout>
+  );
+};
 
 
 /** Shared hand-drawn page shell for auth / system screens. */
@@ -1160,7 +1498,10 @@ export const Gallery: FC<{
       {artifacts.length === 0 ? (
         <div class="empty">
           <h2>Nothing here yet</h2>
-          <p>Publish from your agent or terminal, then it shows up here.</p>
+          <p>
+            Publish from your agent or terminal, then it shows up here.{" "}
+            <a href="/">Install skill / CLI →</a>
+          </p>
           <span class="mono">lookmom publish ./artifact</span>
         </div>
       ) : (
