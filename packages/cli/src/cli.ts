@@ -11,6 +11,13 @@ import {
   parseArtifactRef,
   AuthExpired,
 } from "./api";
+import {
+  githubLogin,
+  githubLogout,
+  githubOrgs,
+  githubStatus,
+  githubTeams,
+} from "./github";
 import { startPreview } from "./preview";
 import { c, info, ok, die, warn } from "./util";
 
@@ -52,13 +59,17 @@ function asStr(v: string | string[] | boolean | undefined): string | undefined {
 const HELP = `${c.bold("lookmom")} — publish self-contained HTML artifacts behind auth
 
 ${c.bold("Usage")}
-  lookmom login                       Authorize this device (auth.md flow)
+  lookmom login                       Authorize this device (auth.md / WorkOS)
   lookmom logout                      Revoke + forget the cached token
   lookmom whoami                      Show login status
   lookmom preview <file> [--port n]   Serve <file> locally under production CSP
   lookmom publish <file> [opts]       Publish (or update) an artifact
   lookmom share <id|url> [opts]       Manage who can view an artifact
   lookmom list                        List your artifacts
+  lookmom github login                Connect GitHub via WorkOS (for org share)
+  lookmom github orgs                 List orgs you can share with
+  lookmom github teams --org <org>    List teams in an org
+  lookmom github status | logout
 
 ${c.bold("publish options")}
   --update <id|url>   Republish a new version to an existing artifact
@@ -75,7 +86,7 @@ ${c.bold("share options")}
   --github-team <t>   Optional GitHub team slug
 
 ${c.bold("global")}
-  --api <url>         Worker base URL (default: $LOOKMOM_API_URL or http://localhost:8787)
+  --api <url>         Worker base URL (default: https://lookmom.stuff.md, or $LOOKMOM_API_URL)
 `;
 
 async function main() {
@@ -98,8 +109,43 @@ async function main() {
       if (saved?.accessToken) {
         info(`Logged in to ${c.cyan(saved.apiBase)}`);
         if (saved.expiresAt) info(c.dim(`token expires ${new Date(saved.expiresAt * 1000).toLocaleString()}`));
+        // Live check: default WorkOS GitHub login already links the owner.
+        try {
+          await githubStatus(apiBase);
+        } catch {
+          if (saved.githubLogin) info(`GitHub: ${c.bold("@" + saved.githubLogin)}`);
+          else info(c.dim("GitHub: not connected (lookmom github login)"));
+        }
       } else {
         info("Not logged in. Run `lookmom login`.");
+      }
+      break;
+    }
+    case "github": {
+      const sub = flags._[1];
+      switch (sub) {
+        case "login":
+          await githubLogin(apiBase);
+          break;
+        case "logout":
+          await githubLogout(apiBase);
+          break;
+        case "status":
+          await githubStatus(apiBase);
+          break;
+        case "orgs":
+          await githubOrgs(apiBase);
+          break;
+        case "teams": {
+          const org = asStr(flags.org) ?? asStr(flags["github-org"]);
+          if (!org) die("Usage: lookmom github teams --org <org>");
+          await githubTeams(apiBase, org);
+          break;
+        }
+        default:
+          die(
+            "Usage: lookmom github <login|logout|status|orgs|teams --org X>\nGitHub connect goes through WorkOS (not a separate GitHub OAuth app).",
+          );
       }
       break;
     }
@@ -179,12 +225,7 @@ async function main() {
             `github: ${res.github_org}${res.github_team ? "/" + res.github_team : " (whole org)"}`,
           ),
         );
-        const connectUrl = `${apiBase.replace(/\/$/, "")}/connect/github`;
-        info(
-          c.dim(
-            `Owners: open Share or ${connectUrl} to Connect GitHub. Viewers sign in with GitHub.`,
-          ),
-        );
+        info(c.dim("Viewers sign in with GitHub. Owners: lookmom github login → github orgs"));
       }
       if (emails.length) info(c.dim(`allowed: ${emails.join(", ")}`));
       break;

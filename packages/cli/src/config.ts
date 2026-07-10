@@ -11,15 +11,20 @@ export interface Credentials {
   accessToken: string;
   ownerEmail?: string;
   expiresAt?: number; // unix seconds
+  /** Set after `lookmom github login` (WorkOS) — login only; token stays on server. */
+  githubLogin?: string;
 }
 
-/** Resolve the API base: --api flag > env > saved creds > localhost default. */
+/** Production instance — default so agents/users don't need LOOKMOM_API_URL. */
+export const DEFAULT_API_BASE = "https://lookmom.stuff.md";
+
+/** Resolve the API base: --api flag > env > saved creds > production default. */
 export function resolveApiBase(flag?: string, saved?: string): string {
   return (
     flag ||
     process.env.LOOKMOM_API_URL ||
     saved ||
-    "http://localhost:8787"
+    DEFAULT_API_BASE
   ).replace(/\/$/, "");
 }
 
@@ -34,7 +39,9 @@ export async function loadCredentials(): Promise<Credentials | null> {
 
 export async function saveCredentials(creds: Credentials): Promise<void> {
   await mkdir(DIR, { recursive: true });
-  await writeFile(FILE, JSON.stringify(creds, null, 2), "utf8");
+  // Strip any accidental githubToken from older drafts
+  const { githubToken: _drop, ...safe } = creds as Credentials & { githubToken?: string };
+  await writeFile(FILE, JSON.stringify(safe, null, 2), "utf8");
   await chmod(FILE, 0o600);
 }
 

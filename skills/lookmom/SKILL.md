@@ -74,25 +74,36 @@ encouraged where they help — they run fine inline.
    | Anyone with the link | Share UI → “Anyone”, or `lookmom share <id> --mode public` |
    | GitHub org / team | See **GitHub organization members** below |
 
-### GitHub organization members
+### GitHub organization members (CLI / agent path)
 
-Use this only when the user wants to share with people in a GitHub org (or team).
+Everything goes **CLI → WorkOS → GitHub**. No `gh` binary. No separate GitHub OAuth app
+device flow. The human only approves **WorkOS GitHub** once when the agent runs connect.
 
-1. **Connect GitHub first (human step).** Tell the user to open:
-   **https://lookmom.stuff.md/connect/github**  
-   (also linked from Share when “GitHub organization members” is selected, and from the
-   gallery). They complete that page so lookmom can verify org membership (`read:org`).
-   Do **not** try to complete GitHub OAuth yourself — route the human to that page and wait.
+```bash
+# Default API is https://lookmom.stuff.md (no env var needed).
+# Local only: lookmom … --api http://localhost:8787
 
-2. **Set org / team** via Share UI, or:
-   ```bash
-   lookmom share <id|url> --github-org acme --github-team eng
-   ```
-   Omit `--github-team` to allow any member of the org.
+lookmom login                 # once: auth.md / WorkOS for publish
+lookmom whoami                # shows GitHub if already linked via WorkOS
+lookmom github login          # no-op if already linked; else opens WorkOS GitHub once
+lookmom github orgs           # lists orgs (no gh CLI)
+lookmom github teams --org Aperturs
+lookmom share <id> --github-org Aperturs
+# optional team:
+lookmom share <id> --github-org Aperturs --github-team eng
+```
 
-3. **Viewers** of org-shared links sign in with GitHub; membership is checked live.
+**Agent rules**
 
-Email allowlist and public share do **not** require Connect GitHub.
+1. After `lookmom login` / `whoami`, check if GitHub is already connected (user’s default
+   WorkOS method may be GitHub — then **skip** a second connect).
+2. If not connected, run `lookmom github login` and **show the user the code/URL**; wait.
+3. Run `lookmom github orgs` and pick the org the user asked for from that list.
+4. Then `lookmom share … --github-org …`.
+5. Do **not** use `gh` or a separate GitHub OAuth flow.
+
+Viewers of org-shared links still sign in with GitHub in the browser (membership check).
+Email allowlist and public share do **not** need `lookmom github login`.
 
 ## Updating an existing artifact
 
@@ -107,9 +118,10 @@ asks to change it, always use `--update <url>` — otherwise you'll create a bra
 ## Useful commands
 
 ```bash
-lookmom list                 # the user's artifacts + URLs
-lookmom whoami               # login status
-lookmom login                # (re)authorize this device
+lookmom list
+lookmom whoami
+lookmom login
+lookmom github login | orgs | teams --org X | status | logout
 lookmom share <id> --email a@b
 lookmom share <id> --mode public
 lookmom share <id> --github-org acme [--github-team eng]
@@ -117,10 +129,9 @@ lookmom share <id> --github-org acme [--github-team eng]
 
 ## Prerequisites
 
-The `lookmom` CLI must be installed and pointed at a lookmom instance.
+The `lookmom` CLI must be installed. It defaults to **`https://lookmom.stuff.md`**.
 
-- Production default host: `https://lookmom.stuff.md`
-- Local default: `http://localhost:8787`
-- Override with `--api <url>` or `$LOOKMOM_API_URL`
+- Local dev: `lookmom … --api http://localhost:8787` or `LOOKMOM_API_URL=http://localhost:8787`
+- Other hosts: `--api <url>` or `$LOOKMOM_API_URL`
 
 If the command isn’t found, the user needs to set it up — see the project README.
