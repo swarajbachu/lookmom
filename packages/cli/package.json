@@ -31,13 +31,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/swarajbachu/lookmom.git",
+    "url": "git+https://github.com/thegesturs/lookmom.git",
     "directory": "packages/cli"
   },
   "bugs": {
-    "url": "https://github.com/swarajbachu/lookmom/issues"
+    "url": "https://github.com/thegesturs/lookmom/issues"
   },
-  "homepage": "https://github.com/swarajbachu/lookmom#readme",
+  "homepage": "https://github.com/thegesturs/lookmom#readme",
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "typescript": "^6.0.3"

@@ -23,17 +23,17 @@ Layout matches the multi-skill repo convention (`skills/<name>/SKILL.md`), same 
 
 ```bash
 # Interactive: lists lookmom + lookmom-design, then prompts for which + which agents
-npx skills add swarajbachu/lookmom
+npx skills add thegesturs/lookmom
 
 # List only
-npx skills add swarajbachu/lookmom --list
+npx skills add thegesturs/lookmom --list
 
 # Install both, non-interactive
-npx skills add swarajbachu/lookmom --skill '*' -y
+npx skills add thegesturs/lookmom --skill '*' -y
 
 # One skill only
-npx skills add swarajbachu/lookmom --skill lookmom-design -y
-npx skills add swarajbachu/lookmom --skill lookmom -y
+npx skills add thegesturs/lookmom --skill lookmom-design -y
+npx skills add thegesturs/lookmom --skill lookmom -y
 ```
 
 ### Manual install

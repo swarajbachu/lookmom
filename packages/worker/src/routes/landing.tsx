@@ -31,7 +31,7 @@ Default artifact URL: \`${host}/a/<id>\`.
 ### Skill
 
 \`\`\`bash
-npx skills add swarajbachu/lookmom
+npx skills add thegesturs/lookmom
 \`\`\`
 
 ### npm (CLI)
@@ -53,8 +53,8 @@ Publish this as a lookmom artifact.
 \`\`\`
 
 Full skills in the repo:
-- https://github.com/swarajbachu/lookmom/blob/main/skills/lookmom/SKILL.md
-- Design: https://github.com/swarajbachu/lookmom/blob/main/skills/lookmom-design/SKILL.md
+- https://github.com/thegesturs/lookmom/blob/main/skills/lookmom/SKILL.md
+- Design: https://github.com/thegesturs/lookmom/blob/main/skills/lookmom-design/SKILL.md
 
 ## Quick publish
 
@@ -78,7 +78,7 @@ Multi-file folders need \`index.html\`; CLI packs CSS/JS/images for a strict CSP
 
 Default API: \`${host}\`. Override with \`--api <url>\` or \`$LOOKMOM_API_URL\`.
 
-Site: ${host} · Source: https://github.com/swarajbachu/lookmom (MIT)
+Site: ${host} · Source: https://github.com/thegesturs/lookmom (MIT)
 `;
   return c.text(md, 200, {
     "content-type": "text/markdown; charset=utf-8",
