@@ -968,7 +968,7 @@ export const Landing: FC<{ email?: string; host: string }> = ({ email, host }) =
 2. Install the CLI if needed, then lookmom login + lookmom publish
 3. Share with my GitHub org if I ask — no enterprise plan required`;
 
-  const skillCmd = "npx skills add swarajbachu/lookmom";
+  const skillCmd = "npx skills add thegesturs/lookmom";
   const npmCmd = "npm install -g lookmom";
 
   return (
@@ -1063,14 +1063,14 @@ export const Landing: FC<{ email?: string; host: string }> = ({ email, host }) =
               Sign in to gallery
             </a>
           )}
-          <a class="btn ghost" href="https://github.com/swarajbachu/lookmom">
+          <a class="btn ghost" href="https://github.com/thegesturs/lookmom">
             GitHub →
           </a>
         </div>
         <div class="land-links">
           <a href="/SKILL.md">/SKILL.md</a>
           <a href="https://www.npmjs.com/package/lookmom">npm lookmom</a>
-          <a href="https://github.com/swarajbachu/lookmom">source</a>
+          <a href="https://github.com/thegesturs/lookmom">source</a>
         </div>
       </main>
       <script dangerouslySetInnerHTML={{ __html: LANDING_TABS_SCRIPT }} />

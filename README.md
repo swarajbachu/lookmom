@@ -46,7 +46,7 @@ You can author **one file** or a **multi-file project** (`index.html` + CSS/JS/p
 
 Three things make it useful:
 
-1. **Every agent can publish.** Paste a prompt, install the skill (`npx skills add swarajbachu/lookmom`), or use the CLI (`npm install -g lookmom`). Not Claude-only.
+1. **Every agent can publish.** Paste a prompt, install the skill (`npx skills add thegesturs/lookmom`), or use the CLI (`npm install -g lookmom`). Not Claude-only.
 2. **Real access control, easy team share.** Every artifact is `private`, `allowlist` (emails), `github_team` (current GitHub org/team members), or `public`. Org sharing does **not** require an enterprise plan.
 3. **Free & open source.** MIT license. Cloudflare Workers + D1 + R2 + WorkOS free tiers; a personal instance costs **$0**.
 
@@ -181,7 +181,7 @@ Install with [`skills`](https://github.com/vercel-labs/skills) (Claude Code, Cur
 
 ```bash
 # both skills from this repo
-npx skills add swarajbachu/lookmom
+npx skills add thegesturs/lookmom
 
 # or copy a single skill directory into your agent's skills folder:
 #   skills/lookmom/

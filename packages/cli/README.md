@@ -31,4 +31,4 @@ lookmom list
 
 Multi-file projects are bundled automatically (local CSS/JS/images/partials inlined for CSP).
 
-See the [repo README](https://github.com/swarajbachu/lookmom) for full docs.
+See the [repo README](https://github.com/thegesturs/lookmom) for full docs.
